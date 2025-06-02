@@ -67,7 +67,7 @@ export interface Schedule {
 }
 
 // Base API URL
-const API_BASE_URL = 'https://5000-ikvqu1dgsysooantl7xma-121638ec.manusvm.computer/api';
+const API_BASE_URL = 'https://smartstatback.onrender.com';
 
 // Authentication API
 export const authApi = {
