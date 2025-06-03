@@ -1,2 +1,4 @@
-buildCommand: pnpm install && pnpm run build
-publishDir: dist
+routes:
+  - type: rewrite
+    source: /*
+    destination: /index.html
