@@ -69,253 +69,183 @@ export interface Schedule {
 // Base API URL
 const API_BASE_URL = 'https://smartstatback.onrender.com/api';
 
+// Helper function to handle API errors
+const handleApiError = async (response: Response) => {
+  if (!response.ok) {
+    let errorMessage = 'An error occurred';
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || 'Request failed';
+    } catch (e) {
+      errorMessage = `${response.status}: ${response.statusText}`;
+    }
+    throw new Error(errorMessage);
+  }
+  return response.json();
+};
+
 // Authentication API
 export const authApi = {
   login: async (data: LoginRequest) => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to login');
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+        credentials: 'include',
+      });
+      
+      return handleApiError(response);
+    } catch (err) {
+      console.error('Login API error:', err);
+      throw err;
     }
-
-    return response.json();
   },
 
   register: async (data: RegisterRequest) => {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to register');
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+        credentials: 'include',
+      });
+      
+      return handleApiError(response);
+    } catch (err) {
+      console.error('Register API error:', err);
+      throw err;
     }
-
-    return response.json();
   },
 
   getProfile: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to get profile');
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        credentials: 'include',
+      });
+      
+      return handleApiError(response);
+    } catch (err) {
+      console.error('Get profile API error:', err);
+      throw err;
     }
-
-    return response.json();
   },
+};
+
+// Create a base API request function with authentication
+const authenticatedRequest = async (
+  endpoint: string, 
+  token: string, 
+  options: RequestInit = {}
+) => {
+  const headers = {
+    ...options.headers,
+    'Authorization': `Bearer ${token}`,
+  };
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
+    
+    return handleApiError(response);
+  } catch (err) {
+    console.error(`API error for ${endpoint}:`, err);
+    throw err;
+  }
 };
 
 // Properties API
 export const propertiesApi = {
   getAll: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/properties`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to get properties');
-    }
-
-    return response.json();
+    return authenticatedRequest('/properties', token);
   },
 
   getById: async (token: string, id: number) => {
-    const response = await fetch(`${API_BASE_URL}/properties/${id}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to get property');
-    }
-
-    return response.json();
+    return authenticatedRequest(`/properties/${id}`, token);
   },
 
   create: async (token: string, data: Omit<Property, 'id' | 'user_id'>) => {
-    const response = await fetch(`${API_BASE_URL}/properties`, {
+    return authenticatedRequest('/properties', token, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to create property');
-    }
-
-    return response.json();
   },
 
   update: async (token: string, id: number, data: Partial<Omit<Property, 'id' | 'user_id'>>) => {
-    const response = await fetch(`${API_BASE_URL}/properties/${id}`, {
+    return authenticatedRequest(`/properties/${id}`, token, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to update property');
-    }
-
-    return response.json();
   },
 
   delete: async (token: string, id: number) => {
-    const response = await fetch(`${API_BASE_URL}/properties/${id}`, {
+    return authenticatedRequest(`/properties/${id}`, token, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to delete property');
-    }
-
-    return response.json();
   },
 };
 
 // Thermostats API
 export const thermostatsApi = {
   getAll: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/thermostats`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to get thermostats');
-    }
-
-    return response.json();
+    return authenticatedRequest('/thermostats', token);
   },
 
   getById: async (token: string, id: number) => {
-    const response = await fetch(`${API_BASE_URL}/thermostats/${id}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to get thermostat');
-    }
-
-    return response.json();
+    return authenticatedRequest(`/thermostats/${id}`, token);
   },
 
   getByProperty: async (token: string, propertyId: number) => {
-    const response = await fetch(`${API_BASE_URL}/properties/${propertyId}/thermostats`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to get thermostats for property');
-    }
-
-    return response.json();
+    return authenticatedRequest(`/properties/${propertyId}/thermostats`, token);
   },
 
   create: async (token: string, data: Omit<Thermostat, 'id' | 'is_online' | 'last_temperature' | 'last_updated'>) => {
-    const response = await fetch(`${API_BASE_URL}/thermostats`, {
+    return authenticatedRequest('/thermostats', token, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to create thermostat');
-    }
-
-    return response.json();
   },
 
   update: async (token: string, id: number, data: Partial<Omit<Thermostat, 'id' | 'is_online' | 'last_temperature' | 'last_updated'>>) => {
-    const response = await fetch(`${API_BASE_URL}/thermostats/${id}`, {
+    return authenticatedRequest(`/thermostats/${id}`, token, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to update thermostat');
-    }
-
-    return response.json();
   },
 
   delete: async (token: string, id: number) => {
-    const response = await fetch(`${API_BASE_URL}/thermostats/${id}`, {
+    return authenticatedRequest(`/thermostats/${id}`, token, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to delete thermostat');
-    }
-
-    return response.json();
   },
 
   setTemperature: async (token: string, id: number, temperature: number, isCooling: boolean) => {
-    const response = await fetch(`${API_BASE_URL}/thermostats/${id}/temperature`, {
+    return authenticatedRequest(`/thermostats/${id}/temperature`, token, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -323,274 +253,117 @@ export const thermostatsApi = {
         mode: isCooling ? 'cooling' : 'heating',
       }),
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to set temperature');
-    }
-
-    return response.json();
   },
 
   setPower: async (token: string, id: number, power: 'on' | 'off') => {
-    const response = await fetch(`${API_BASE_URL}/thermostats/${id}/power`, {
+    return authenticatedRequest(`/thermostats/${id}/power`, token, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         power,
       }),
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to set power');
-    }
-
-    return response.json();
   },
 };
 
 // Calendars API
 export const calendarsApi = {
   getAll: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/calendars`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to get calendars');
-    }
-
-    return response.json();
+    return authenticatedRequest('/calendars', token);
   },
 
   getById: async (token: string, id: number) => {
-    const response = await fetch(`${API_BASE_URL}/calendars/${id}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to get calendar');
-    }
-
-    return response.json();
+    return authenticatedRequest(`/calendars/${id}`, token);
   },
 
   getByProperty: async (token: string, propertyId: number) => {
-    const response = await fetch(`${API_BASE_URL}/properties/${propertyId}/calendars`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to get calendars for property');
-    }
-
-    return response.json();
+    return authenticatedRequest(`/properties/${propertyId}/calendars`, token);
   },
 
   create: async (token: string, data: Omit<Calendar, 'id'>) => {
-    const response = await fetch(`${API_BASE_URL}/calendars`, {
+    return authenticatedRequest('/calendars', token, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to create calendar');
-    }
-
-    return response.json();
   },
 
   update: async (token: string, id: number, data: Partial<Omit<Calendar, 'id'>>) => {
-    const response = await fetch(`${API_BASE_URL}/calendars/${id}`, {
+    return authenticatedRequest(`/calendars/${id}`, token, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to update calendar');
-    }
-
-    return response.json();
   },
 
   delete: async (token: string, id: number) => {
-    const response = await fetch(`${API_BASE_URL}/calendars/${id}`, {
+    return authenticatedRequest(`/calendars/${id}`, token, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to delete calendar');
-    }
-
-    return response.json();
   },
 
   sync: async (token: string, id: number) => {
-    const response = await fetch(`${API_BASE_URL}/calendars/${id}/sync`, {
+    return authenticatedRequest(`/calendars/${id}/sync`, token, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to sync calendar');
-    }
-
-    return response.json();
   },
 };
 
 // Schedules API
 export const schedulesApi = {
   getAll: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/schedules`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to get schedules');
-    }
-
-    return response.json();
+    return authenticatedRequest('/schedules', token);
   },
 
   getById: async (token: string, id: number) => {
-    const response = await fetch(`${API_BASE_URL}/schedules/${id}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to get schedule');
-    }
-
-    return response.json();
+    return authenticatedRequest(`/schedules/${id}`, token);
   },
 
   getByThermostat: async (token: string, thermostatId: number) => {
-    const response = await fetch(`${API_BASE_URL}/thermostats/${thermostatId}/schedules`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to get schedules for thermostat');
-    }
-
-    return response.json();
+    return authenticatedRequest(`/thermostats/${thermostatId}/schedules`, token);
   },
 
   create: async (token: string, data: Omit<Schedule, 'id'>) => {
-    const response = await fetch(`${API_BASE_URL}/schedules`, {
+    return authenticatedRequest('/schedules', token, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to create schedule');
-    }
-
-    return response.json();
   },
 
   update: async (token: string, id: number, data: Partial<Omit<Schedule, 'id'>>) => {
-    const response = await fetch(`${API_BASE_URL}/schedules/${id}`, {
+    return authenticatedRequest(`/schedules/${id}`, token, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to update schedule');
-    }
-
-    return response.json();
   },
 
   delete: async (token: string, id: number) => {
-    const response = await fetch(`${API_BASE_URL}/schedules/${id}`, {
+    return authenticatedRequest(`/schedules/${id}`, token, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to delete schedule');
-    }
-
-    return response.json();
   },
 
   toggle: async (token: string, id: number, isActive: boolean) => {
-    const response = await fetch(`${API_BASE_URL}/schedules/${id}/toggle`, {
+    return authenticatedRequest(`/schedules/${id}/toggle`, token, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         is_active: isActive,
       }),
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to toggle schedule');
-    }
-
-    return response.json();
   },
 };
