@@ -15,6 +15,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const TOKEN_KEY = 'thermostat_auth_token';
+const USER_KEY = 'thermostat_user_data';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -22,12 +23,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load token from localStorage on initial render
+  // Load token and user data from localStorage on initial render
   useEffect(() => {
     const storedToken = localStorage.getItem(TOKEN_KEY);
+    const storedUser = localStorage.getItem(USER_KEY);
+    
     if (storedToken) {
       setToken(storedToken);
-      fetchUserProfile(storedToken);
+      
+      // If we have cached user data, use it immediately to prevent loading state
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+          setIsLoading(false);
+        } catch (e) {
+          console.error('Failed to parse stored user data:', e);
+          // If parsing fails, fetch fresh data
+          fetchUserProfile(storedToken);
+        }
+      } else {
+        // No cached user data, fetch from API
+        fetchUserProfile(storedToken);
+      }
     } else {
       setIsLoading(false);
     }
@@ -39,6 +56,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       const response = await authApi.getProfile(authToken);
       setUser(response.user);
+      
+      // Cache user data
+      localStorage.setItem(USER_KEY, JSON.stringify(response.user));
+      
       setIsLoading(false);
     } catch (err) {
       console.error('Failed to fetch user profile:', err);
@@ -53,12 +74,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       setError(null);
+      
       const response = await authApi.login(data);
-      setUser(response.user);
+      
+      // Store token and user data
       setToken(response.token);
+      setUser(response.user);
+      
+      // Cache in localStorage
       localStorage.setItem(TOKEN_KEY, response.token);
+      localStorage.setItem(USER_KEY, JSON.stringify(response.user));
+      
+      console.log('Login successful, token stored:', response.token.substring(0, 10) + '...');
+      
       setIsLoading(false);
     } catch (err: any) {
+      console.error('Login error:', err);
       setError(err.message || 'Failed to login. Please try again.');
       setIsLoading(false);
       throw err;
@@ -85,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setToken(null);
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
   };
 
   // Clear error
