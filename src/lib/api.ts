@@ -1,5 +1,69 @@
 // API service for communicating with the Django backend
-// This file handles all API requests and authentication
+// This file maintains backward compatibility with existing components
+
+// Types needed by components
+export interface User {
+  id: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  first_name?: string;
+  last_name?: string;
+}
+
+export interface Property {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  user_id: string;
+}
+
+export interface Thermostat {
+  id: string;
+  name: string;
+  model: string;
+  serial_number: string;
+  property_id: string;
+  current_temperature?: number;
+  target_temperature?: number;
+  is_heating?: boolean;
+  is_cooling?: boolean;
+  is_fan_on?: boolean;
+  last_updated?: string;
+}
+
+export interface Schedule {
+  id: string;
+  thermostat_id: string;
+  name: string;
+  start_time: string;
+  end_time: string;
+  target_temperature: number;
+  days_of_week: string[];
+  is_active: boolean;
+}
+
+export interface Calendar {
+  id: string;
+  property_id: string;
+  name: string;
+  url: string;
+  is_active: boolean;
+  last_synced?: string;
+}
 
 const API_BASE_URL = 'https://smartstatback.onrender.com/api';
 
@@ -68,8 +132,8 @@ const authenticatedRequest = async (url: string, options: RequestInit = {}) => {
   return response.json();
 };
 
-// Authentication API
-export const authAPI = {
+// Authentication API - Using the name expected by components (authApi)
+export const authApi = {
   // Login with email and password
   login: async (email: string, password: string) => {
     try {
@@ -99,7 +163,7 @@ export const authAPI = {
   },
   
   // Register a new user
-  register: async (userData: any) => {
+  register: async (userData: RegisterRequest) => {
     try {
       const response = await fetch(`${API_BASE_URL}${AUTH_ENDPOINTS.REGISTER}`, {
         method: 'POST',
@@ -173,8 +237,8 @@ export const authAPI = {
   },
 };
 
-// Thermostat API
-export const thermostatAPI = {
+// Thermostat API - Using the name expected by components (thermostatsApi)
+export const thermostatsApi = {
   // Get all thermostats
   getAll: async () => {
     return authenticatedRequest(`${API_BASE_URL}${THERMOSTAT_ENDPOINTS.LIST}`);
@@ -186,7 +250,7 @@ export const thermostatAPI = {
   },
   
   // Create a new thermostat
-  create: async (thermostatData: any) => {
+  create: async (thermostatData: Partial<Thermostat>) => {
     return authenticatedRequest(`${API_BASE_URL}${THERMOSTAT_ENDPOINTS.LIST}`, {
       method: 'POST',
       body: JSON.stringify(thermostatData),
@@ -194,7 +258,7 @@ export const thermostatAPI = {
   },
   
   // Update a thermostat
-  update: async (id: string, thermostatData: any) => {
+  update: async (id: string, thermostatData: Partial<Thermostat>) => {
     return authenticatedRequest(`${API_BASE_URL}${THERMOSTAT_ENDPOINTS.DETAIL(id)}`, {
       method: 'PATCH',
       body: JSON.stringify(thermostatData),
@@ -227,8 +291,8 @@ export const thermostatAPI = {
   },
 };
 
-// Property API
-export const propertyAPI = {
+// Property API - Using the name expected by components (propertiesApi)
+export const propertiesApi = {
   // Get all properties
   getAll: async () => {
     return authenticatedRequest(`${API_BASE_URL}${PROPERTY_ENDPOINTS.LIST}`);
@@ -240,7 +304,7 @@ export const propertyAPI = {
   },
   
   // Create a new property
-  create: async (propertyData: any) => {
+  create: async (propertyData: Partial<Property>) => {
     return authenticatedRequest(`${API_BASE_URL}${PROPERTY_ENDPOINTS.LIST}`, {
       method: 'POST',
       body: JSON.stringify(propertyData),
@@ -248,7 +312,7 @@ export const propertyAPI = {
   },
   
   // Update a property
-  update: async (id: string, propertyData: any) => {
+  update: async (id: string, propertyData: Partial<Property>) => {
     return authenticatedRequest(`${API_BASE_URL}${PROPERTY_ENDPOINTS.DETAIL(id)}`, {
       method: 'PATCH',
       body: JSON.stringify(propertyData),
@@ -268,8 +332,8 @@ export const propertyAPI = {
   },
 };
 
-// Calendar API
-export const calendarAPI = {
+// Calendar API - Using the name expected by components (calendarsApi)
+export const calendarsApi = {
   // Get all calendars
   getAll: async () => {
     return authenticatedRequest(`${API_BASE_URL}${CALENDAR_ENDPOINTS.LIST}`);
@@ -281,7 +345,7 @@ export const calendarAPI = {
   },
   
   // Create a new calendar
-  create: async (calendarData: any) => {
+  create: async (calendarData: Partial<Calendar>) => {
     return authenticatedRequest(`${API_BASE_URL}${CALENDAR_ENDPOINTS.LIST}`, {
       method: 'POST',
       body: JSON.stringify(calendarData),
@@ -289,7 +353,7 @@ export const calendarAPI = {
   },
   
   // Update a calendar
-  update: async (id: string, calendarData: any) => {
+  update: async (id: string, calendarData: Partial<Calendar>) => {
     return authenticatedRequest(`${API_BASE_URL}${CALENDAR_ENDPOINTS.DETAIL(id)}`, {
       method: 'PATCH',
       body: JSON.stringify(calendarData),
@@ -311,10 +375,53 @@ export const calendarAPI = {
   },
 };
 
-// Export all APIs
+// Schedule API - Using the name expected by components (schedulesApi)
+export const schedulesApi = {
+  // Get all schedules
+  getAll: async () => {
+    return authenticatedRequest(`${API_BASE_URL}/schedules/`);
+  },
+  
+  // Get a specific schedule
+  getById: async (id: string) => {
+    return authenticatedRequest(`${API_BASE_URL}/schedules/${id}/`);
+  },
+  
+  // Create a new schedule
+  create: async (scheduleData: Partial<Schedule>) => {
+    return authenticatedRequest(`${API_BASE_URL}/schedules/`, {
+      method: 'POST',
+      body: JSON.stringify(scheduleData),
+    });
+  },
+  
+  // Update a schedule
+  update: async (id: string, scheduleData: Partial<Schedule>) => {
+    return authenticatedRequest(`${API_BASE_URL}/schedules/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(scheduleData),
+    });
+  },
+  
+  // Delete a schedule
+  delete: async (id: string) => {
+    return authenticatedRequest(`${API_BASE_URL}/schedules/${id}/`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Also export the new API format for future use
+export const authAPI = authApi;
+export const thermostatAPI = thermostatsApi;
+export const propertyAPI = propertiesApi;
+export const calendarAPI = calendarsApi;
+
+// Export default object with all APIs
 export default {
-  auth: authAPI,
-  thermostats: thermostatAPI,
-  properties: propertyAPI,
-  calendars: calendarAPI,
+  authApi,
+  thermostatsApi,
+  propertiesApi,
+  calendarsApi,
+  schedulesApi,
 };
