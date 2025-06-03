@@ -1,369 +1,320 @@
-// API service for communicating with the backend
+// API service for communicating with the Django backend
+// This file handles all API requests and authentication
 
-// Types
-export interface User {
-  id: number;
-  email: string;
-  first_name: string;
-  last_name: string;
-  role: 'admin' | 'manager' | 'maintenance';
-}
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  first_name: string;
-  last_name: string;
-}
-
-export interface Property {
-  id: number;
-  name: string;
-  address: string;
-  city: string;
-  state: string;
-  zip_code: string;
-  country: string;
-  user_id: number;
-}
-
-export interface Thermostat {
-  id: number;
-  name: string;
-  device_id: string;
-  type: 'NEST' | 'CIELO' | 'PIONEER';
-  property_id: number;
-  is_online: boolean;
-  last_temperature?: number;
-  last_updated?: string;
-  api_key?: string;
-  ip_address?: string;
-}
-
-export interface Calendar {
-  id: number;
-  name: string;
-  type: 'GOOGLE' | 'ICAL' | 'BOOKING' | 'MANUAL';
-  url?: string;
-  property_id: number;
-  sync_frequency: 'HOURLY' | 'DAILY' | 'MANUAL';
-  credentials?: string;
-}
-
-export interface Schedule {
-  id: number;
-  name: string;
-  type: 'BOOKING' | 'TIME' | 'OCCUPANCY';
-  thermostat_id: number;
-  occupied_temp: number;
-  unoccupied_temp: number;
-  pre_arrival_hours?: number;
-  is_active: boolean;
-}
-
-// Base API URL
 const API_BASE_URL = 'https://smartstatback.onrender.com/api';
 
-// Helper function to handle API errors
-const handleApiError = async (response: Response) => {
-  if (!response.ok) {
-    let errorMessage = 'An error occurred';
-    try {
-      const errorData = await response.json();
-      errorMessage = errorData.message || errorData.error || 'Request failed';
-    } catch (e) {
-      errorMessage = `${response.status}: ${response.statusText}`;
-    }
-    throw new Error(errorMessage);
+// Authentication endpoints
+const AUTH_ENDPOINTS = {
+  LOGIN: '/auth/login/',
+  REGISTER: '/auth/register/',
+  REFRESH: '/auth/token/refresh/',
+  VERIFY: '/auth/token/verify/',
+  PROFILE: '/auth/profile/',
+};
+
+// Thermostat endpoints
+const THERMOSTAT_ENDPOINTS = {
+  LIST: '/thermostats/',
+  DETAIL: (id: string) => `/thermostats/${id}/`,
+  SCHEDULE: (id: string) => `/thermostats/${id}/schedule/`,
+  LOGS: (id: string) => `/thermostats/${id}/logs/`,
+};
+
+// Property endpoints
+const PROPERTY_ENDPOINTS = {
+  LIST: '/properties/',
+  DETAIL: (id: string) => `/properties/${id}/`,
+  THERMOSTATS: (id: string) => `/properties/${id}/thermostats/`,
+};
+
+// Calendar endpoints
+const CALENDAR_ENDPOINTS = {
+  LIST: '/calendars/',
+  DETAIL: (id: string) => `/calendars/${id}/`,
+  SYNC: '/calendars/sync/',
+};
+
+// Helper function for authenticated requests
+const authenticatedRequest = async (url: string, options: RequestInit = {}) => {
+  const token = localStorage.getItem('token');
+  
+  if (!token) {
+    throw new Error('No authentication token found');
   }
+  
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+    ...options.headers,
+  };
+  
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+  
+  if (!response.ok) {
+    // Handle different error status codes
+    if (response.status === 401) {
+      // Token expired or invalid
+      localStorage.removeItem('token');
+      throw new Error('Authentication expired. Please log in again.');
+    }
+    
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `API error: ${response.status}`);
+  }
+  
   return response.json();
 };
 
 // Authentication API
-export const authApi = {
-  login: async (data: LoginRequest) => {
+export const authAPI = {
+  // Login with email and password
+  login: async (email: string, password: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      console.log('Attempting login...');
+      const response = await fetch(`${API_BASE_URL}${AUTH_ENDPOINTS.LOGIN}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
-        credentials: 'include',
+        body: JSON.stringify({ email, password }),
       });
       
-      return handleApiError(response);
-    } catch (err) {
-      console.error('Login API error:', err);
-      throw err;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Login API error:', errorData);
+        throw new Error(errorData.detail || 'Login failed');
+      }
+      
+      const data = await response.json();
+      localStorage.setItem('token', data.access);
+      localStorage.setItem('refresh_token', data.refresh);
+      return data;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     }
   },
-
-  register: async (data: RegisterRequest) => {
+  
+  // Register a new user
+  register: async (userData: any) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      const response = await fetch(`${API_BASE_URL}${AUTH_ENDPOINTS.REGISTER}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
-        credentials: 'include',
+        body: JSON.stringify(userData),
       });
       
-      return handleApiError(response);
-    } catch (err) {
-      console.error('Register API error:', err);
-      throw err;
-    }
-  },
-
-  getProfile: async (token: string) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        credentials: 'include',
-      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Registration failed');
+      }
       
-      return handleApiError(response);
-    } catch (err) {
-      console.error('Get profile API error:', err);
-      throw err;
+      return response.json();
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
     }
   },
-};
-
-// Create a base API request function with authentication
-const authenticatedRequest = async (
-  endpoint: string, 
-  token: string, 
-  options: RequestInit = {}
-) => {
-  const headers = {
-    ...options.headers,
-    'Authorization': `Bearer ${token}`,
-  };
-
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers,
-      credentials: 'include',
-    });
+  
+  // Refresh the authentication token
+  refreshToken: async () => {
+    const refreshToken = localStorage.getItem('refresh_token');
     
-    return handleApiError(response);
-  } catch (err) {
-    console.error(`API error for ${endpoint}:`, err);
-    throw err;
-  }
-};
-
-// Properties API
-export const propertiesApi = {
-  getAll: async (token: string) => {
-    return authenticatedRequest('/properties', token);
+    if (!refreshToken) {
+      throw new Error('No refresh token found');
+    }
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}${AUTH_ENDPOINTS.REFRESH}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refresh: refreshToken }),
+      });
+      
+      if (!response.ok) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
+        throw new Error('Failed to refresh authentication');
+      }
+      
+      const data = await response.json();
+      localStorage.setItem('token', data.access);
+      return data;
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      throw error;
+    }
   },
-
-  getById: async (token: string, id: number) => {
-    return authenticatedRequest(`/properties/${id}`, token);
+  
+  // Get user profile
+  getProfile: async () => {
+    return authenticatedRequest(`${API_BASE_URL}${AUTH_ENDPOINTS.PROFILE}`);
   },
-
-  create: async (token: string, data: Omit<Property, 'id' | 'user_id'>) => {
-    return authenticatedRequest('/properties', token, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
+  
+  // Update user profile
+  updateProfile: async (profileData: any) => {
+    return authenticatedRequest(`${API_BASE_URL}${AUTH_ENDPOINTS.PROFILE}`, {
+      method: 'PATCH',
+      body: JSON.stringify(profileData),
     });
   },
-
-  update: async (token: string, id: number, data: Partial<Omit<Property, 'id' | 'user_id'>>) => {
-    return authenticatedRequest(`/properties/${id}`, token, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-  },
-
-  delete: async (token: string, id: number) => {
-    return authenticatedRequest(`/properties/${id}`, token, {
-      method: 'DELETE',
-    });
-  },
-};
-
-// Thermostats API
-export const thermostatsApi = {
-  getAll: async (token: string) => {
-    return authenticatedRequest('/thermostats', token);
-  },
-
-  getById: async (token: string, id: number) => {
-    return authenticatedRequest(`/thermostats/${id}`, token);
-  },
-
-  getByProperty: async (token: string, propertyId: number) => {
-    return authenticatedRequest(`/properties/${propertyId}/thermostats`, token);
-  },
-
-  create: async (token: string, data: Omit<Thermostat, 'id' | 'is_online' | 'last_temperature' | 'last_updated'>) => {
-    return authenticatedRequest('/thermostats', token, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-  },
-
-  update: async (token: string, id: number, data: Partial<Omit<Thermostat, 'id' | 'is_online' | 'last_temperature' | 'last_updated'>>) => {
-    return authenticatedRequest(`/thermostats/${id}`, token, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-  },
-
-  delete: async (token: string, id: number) => {
-    return authenticatedRequest(`/thermostats/${id}`, token, {
-      method: 'DELETE',
-    });
-  },
-
-  setTemperature: async (token: string, id: number, temperature: number, isCooling: boolean) => {
-    return authenticatedRequest(`/thermostats/${id}/temperature`, token, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        temperature,
-        mode: isCooling ? 'cooling' : 'heating',
-      }),
-    });
-  },
-
-  setPower: async (token: string, id: number, power: 'on' | 'off') => {
-    return authenticatedRequest(`/thermostats/${id}/power`, token, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        power,
-      }),
-    });
+  
+  // Logout (client-side only)
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refresh_token');
   },
 };
 
-// Calendars API
-export const calendarsApi = {
-  getAll: async (token: string) => {
-    return authenticatedRequest('/calendars', token);
+// Thermostat API
+export const thermostatAPI = {
+  // Get all thermostats
+  getAll: async () => {
+    return authenticatedRequest(`${API_BASE_URL}${THERMOSTAT_ENDPOINTS.LIST}`);
   },
-
-  getById: async (token: string, id: number) => {
-    return authenticatedRequest(`/calendars/${id}`, token);
+  
+  // Get a specific thermostat
+  getById: async (id: string) => {
+    return authenticatedRequest(`${API_BASE_URL}${THERMOSTAT_ENDPOINTS.DETAIL(id)}`);
   },
-
-  getByProperty: async (token: string, propertyId: number) => {
-    return authenticatedRequest(`/properties/${propertyId}/calendars`, token);
-  },
-
-  create: async (token: string, data: Omit<Calendar, 'id'>) => {
-    return authenticatedRequest('/calendars', token, {
+  
+  // Create a new thermostat
+  create: async (thermostatData: any) => {
+    return authenticatedRequest(`${API_BASE_URL}${THERMOSTAT_ENDPOINTS.LIST}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
+      body: JSON.stringify(thermostatData),
     });
   },
-
-  update: async (token: string, id: number, data: Partial<Omit<Calendar, 'id'>>) => {
-    return authenticatedRequest(`/calendars/${id}`, token, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
+  
+  // Update a thermostat
+  update: async (id: string, thermostatData: any) => {
+    return authenticatedRequest(`${API_BASE_URL}${THERMOSTAT_ENDPOINTS.DETAIL(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(thermostatData),
     });
   },
-
-  delete: async (token: string, id: number) => {
-    return authenticatedRequest(`/calendars/${id}`, token, {
+  
+  // Delete a thermostat
+  delete: async (id: string) => {
+    return authenticatedRequest(`${API_BASE_URL}${THERMOSTAT_ENDPOINTS.DETAIL(id)}`, {
       method: 'DELETE',
     });
   },
+  
+  // Get thermostat schedule
+  getSchedule: async (id: string) => {
+    return authenticatedRequest(`${API_BASE_URL}${THERMOSTAT_ENDPOINTS.SCHEDULE(id)}`);
+  },
+  
+  // Update thermostat schedule
+  updateSchedule: async (id: string, scheduleData: any) => {
+    return authenticatedRequest(`${API_BASE_URL}${THERMOSTAT_ENDPOINTS.SCHEDULE(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(scheduleData),
+    });
+  },
+  
+  // Get thermostat logs
+  getLogs: async (id: string) => {
+    return authenticatedRequest(`${API_BASE_URL}${THERMOSTAT_ENDPOINTS.LOGS(id)}`);
+  },
+};
 
-  sync: async (token: string, id: number) => {
-    return authenticatedRequest(`/calendars/${id}/sync`, token, {
+// Property API
+export const propertyAPI = {
+  // Get all properties
+  getAll: async () => {
+    return authenticatedRequest(`${API_BASE_URL}${PROPERTY_ENDPOINTS.LIST}`);
+  },
+  
+  // Get a specific property
+  getById: async (id: string) => {
+    return authenticatedRequest(`${API_BASE_URL}${PROPERTY_ENDPOINTS.DETAIL(id)}`);
+  },
+  
+  // Create a new property
+  create: async (propertyData: any) => {
+    return authenticatedRequest(`${API_BASE_URL}${PROPERTY_ENDPOINTS.LIST}`, {
+      method: 'POST',
+      body: JSON.stringify(propertyData),
+    });
+  },
+  
+  // Update a property
+  update: async (id: string, propertyData: any) => {
+    return authenticatedRequest(`${API_BASE_URL}${PROPERTY_ENDPOINTS.DETAIL(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(propertyData),
+    });
+  },
+  
+  // Delete a property
+  delete: async (id: string) => {
+    return authenticatedRequest(`${API_BASE_URL}${PROPERTY_ENDPOINTS.DETAIL(id)}`, {
+      method: 'DELETE',
+    });
+  },
+  
+  // Get thermostats for a property
+  getThermostats: async (id: string) => {
+    return authenticatedRequest(`${API_BASE_URL}${PROPERTY_ENDPOINTS.THERMOSTATS(id)}`);
+  },
+};
+
+// Calendar API
+export const calendarAPI = {
+  // Get all calendars
+  getAll: async () => {
+    return authenticatedRequest(`${API_BASE_URL}${CALENDAR_ENDPOINTS.LIST}`);
+  },
+  
+  // Get a specific calendar
+  getById: async (id: string) => {
+    return authenticatedRequest(`${API_BASE_URL}${CALENDAR_ENDPOINTS.DETAIL(id)}`);
+  },
+  
+  // Create a new calendar
+  create: async (calendarData: any) => {
+    return authenticatedRequest(`${API_BASE_URL}${CALENDAR_ENDPOINTS.LIST}`, {
+      method: 'POST',
+      body: JSON.stringify(calendarData),
+    });
+  },
+  
+  // Update a calendar
+  update: async (id: string, calendarData: any) => {
+    return authenticatedRequest(`${API_BASE_URL}${CALENDAR_ENDPOINTS.DETAIL(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(calendarData),
+    });
+  },
+  
+  // Delete a calendar
+  delete: async (id: string) => {
+    return authenticatedRequest(`${API_BASE_URL}${CALENDAR_ENDPOINTS.DETAIL(id)}`, {
+      method: 'DELETE',
+    });
+  },
+  
+  // Sync calendars
+  sync: async () => {
+    return authenticatedRequest(`${API_BASE_URL}${CALENDAR_ENDPOINTS.SYNC}`, {
       method: 'POST',
     });
   },
 };
 
-// Schedules API
-export const schedulesApi = {
-  getAll: async (token: string) => {
-    return authenticatedRequest('/schedules', token);
-  },
-
-  getById: async (token: string, id: number) => {
-    return authenticatedRequest(`/schedules/${id}`, token);
-  },
-
-  getByThermostat: async (token: string, thermostatId: number) => {
-    return authenticatedRequest(`/thermostats/${thermostatId}/schedules`, token);
-  },
-
-  create: async (token: string, data: Omit<Schedule, 'id'>) => {
-    return authenticatedRequest('/schedules', token, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-  },
-
-  update: async (token: string, id: number, data: Partial<Omit<Schedule, 'id'>>) => {
-    return authenticatedRequest(`/schedules/${id}`, token, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-  },
-
-  delete: async (token: string, id: number) => {
-    return authenticatedRequest(`/schedules/${id}`, token, {
-      method: 'DELETE',
-    });
-  },
-
-  toggle: async (token: string, id: number, isActive: boolean) => {
-    return authenticatedRequest(`/schedules/${id}/toggle`, token, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        is_active: isActive,
-      }),
-    });
-  },
+// Export all APIs
+export default {
+  auth: authAPI,
+  thermostats: thermostatAPI,
+  properties: propertyAPI,
+  calendars: calendarAPI,
 };
