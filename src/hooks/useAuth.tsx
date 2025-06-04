@@ -53,10 +53,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const initializeAuth = async () => {
       setIsLoading(true);
       
-      // If test mode is active, use test user
+      // If test mode is active, use test user and redirect to dashboard if on login page
       if (isTestMode) {
         setUser(TEST_USER);
         setIsLoading(false);
+        
+        // If on login page, redirect to dashboard
+        if (location.pathname === '/login') {
+          navigate('/dashboard');
+        }
         return;
       }
       
@@ -87,7 +92,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
     
     initializeAuth();
-  }, [isTestMode]);
+  }, [isTestMode, location.pathname, navigate]);
 
   // Clear error function
   const clearError = () => {
@@ -100,10 +105,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
     
     try {
+      // Debug the request payload
+      console.log('Login attempt with:', { email, password: '********' });
+      
       const response = await axios.post(`${API_URL}/auth/login/`, {
         username: email, // Backend expects username field but we use email
         password
       });
+      
+      console.log('Login response:', response.data);
       
       const { token, user } = response.data;
       localStorage.setItem('token', token);
@@ -115,11 +125,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (err) {
       console.error('Login error:', err);
       const error = err as Error | AxiosError;
-      if (axios.isAxiosError(error) && error.response) {
-        setError(new Error(`Login failed: ${JSON.stringify(error.response.data)}`));
+      
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          console.log('Error response data:', error.response.data);
+          console.log('Error response status:', error.response.status);
+          
+          // More specific error messages based on status code
+          if (error.response.status === 401) {
+            setError(new Error('Invalid email or password. Please try again.'));
+          } else if (error.response.status === 400) {
+            setError(new Error(`Validation error: ${JSON.stringify(error.response.data)}`));
+          } else {
+            setError(new Error(`Login failed: ${JSON.stringify(error.response.data)}`));
+          }
+        } else if (error.request) {
+          // Request was made but no response received
+          setError(new Error('No response from server. Please check your connection and try again.'));
+        } else {
+          setError(new Error(`Login failed: ${error.message}`));
+        }
       } else {
         setError(new Error(`Login failed: ${error.message}`));
       }
+      
       throw error;
     } finally {
       setIsLoading(false);
@@ -136,6 +165,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const timestamp = new Date().getTime().toString().slice(-6);
       const username = `${firstName.toLowerCase()}${lastName.toLowerCase()}${timestamp}`;
       
+      console.log('Register attempt with:', { 
+        username, 
+        email, 
+        password: '********',
+        first_name: firstName,
+        last_name: lastName
+      });
+      
       const response = await axios.post(`${API_URL}/auth/register/`, {
         username,
         email,
@@ -143,6 +180,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         first_name: firstName,
         last_name: lastName
       });
+      
+      console.log('Register response:', response.data);
       
       // Redirect to login page with success message
       navigate('/login', { 
@@ -156,11 +195,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (err) {
       console.error('Registration error:', err);
       const error = err as Error | AxiosError;
-      if (axios.isAxiosError(error) && error.response) {
-        setError(new Error(`Registration failed: ${JSON.stringify(error.response.data)}`));
+      
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          console.log('Error response data:', error.response.data);
+          console.log('Error response status:', error.response.status);
+          
+          if (error.response.status === 400) {
+            // Check for specific validation errors
+            const data = error.response.data as any;
+            if (data.username?.includes('already exists')) {
+              setError(new Error('Username already exists. Please try a different one.'));
+            } else if (data.email?.includes('already exists')) {
+              setError(new Error('Email already exists. Please use a different email or try logging in.'));
+            } else {
+              setError(new Error(`Registration failed: ${JSON.stringify(data)}`));
+            }
+          } else {
+            setError(new Error(`Registration failed: ${JSON.stringify(error.response.data)}`));
+          }
+        } else if (error.request) {
+          setError(new Error('No response from server. Please check your connection and try again.'));
+        } else {
+          setError(new Error(`Registration failed: ${error.message}`));
+        }
       } else {
         setError(new Error(`Registration failed: ${error.message}`));
       }
+      
       throw error;
     } finally {
       setIsLoading(false);
@@ -177,11 +239,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Toggle test mode
   const toggleTestMode = () => {
     const newTestMode = !isTestMode;
+    console.log('Toggling test mode:', { current: isTestMode, new: newTestMode });
+    
     setIsTestMode(newTestMode);
     localStorage.setItem('thermostat_test_mode', newTestMode.toString());
     
     if (newTestMode) {
       setUser(TEST_USER);
+      // If toggling on, redirect to dashboard
+      navigate('/dashboard');
     } else {
       // When disabling test mode, check if there's a real token
       const token = localStorage.getItem('token');
