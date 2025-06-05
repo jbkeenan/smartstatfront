@@ -7,7 +7,7 @@ export interface ErrorHandlerProps {
   onRetry?: () => Promise<void>;
 }
 
-const ErrorHandler: React.FC<ErrorHandlerProps> = ({ error, clearError, children, onRetry }) => {
+const ErrorHandler: React.FC<ErrorHandlerProps> = ({ error, clearError, children }) => {
   const [visible, setVisible] = useState(false);
   
   useEffect(() => {

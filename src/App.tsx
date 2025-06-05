@@ -18,7 +18,7 @@ import './App.css';
 function App() {
   return (
     <Router>
-      <ErrorHandler>
+      <ErrorHandler error={null}>
         <AuthProvider>
           <Routes>
             {/* Public routes */}
