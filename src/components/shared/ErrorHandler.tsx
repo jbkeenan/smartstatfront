@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 
-interface ErrorHandlerProps {
+export interface ErrorHandlerProps {
   error: Error | null;
   clearError?: () => void;
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  onRetry?: () => Promise<void>;
 }
 
-const ErrorHandler: React.FC<ErrorHandlerProps> = ({ error, clearError, children }) => {
+const ErrorHandler: React.FC<ErrorHandlerProps> = ({ error, clearError, children, onRetry }) => {
   const [visible, setVisible] = useState(false);
   
   useEffect(() => {

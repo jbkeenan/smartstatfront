@@ -472,16 +472,28 @@ const thermostats = {
       // Return mock data if in test mode
       if (isTestModeActive()) {
         console.log('Test mode active: Returning mock thermostats data');
-        return MOCK_DATA.thermostats;
+        return MOCK_DATA.thermostats.map(thermostat => ({
+          ...thermostat,
+          mode: thermostat.mode as 'heat' | 'cool' | 'auto' | 'off',
+          fan_mode: thermostat.fan_mode as 'on' | 'auto'
+        }));
       }
       
       const response = await axios.get(`${API_URL}/thermostats/`);
-      return response.data;
+      return response.data.map((thermostat: any) => ({
+        ...thermostat,
+        mode: thermostat.mode as 'heat' | 'cool' | 'auto' | 'off',
+        fan_mode: thermostat.fan_mode as 'on' | 'auto'
+      }));
     } catch (error) {
       // If in test mode, return mock data even on error
       if (isTestModeActive()) {
         console.log('Test mode active: Returning mock thermostats data after error');
-        return MOCK_DATA.thermostats;
+        return MOCK_DATA.thermostats.map(thermostat => ({
+          ...thermostat,
+          mode: thermostat.mode as 'heat' | 'cool' | 'auto' | 'off',
+          fan_mode: thermostat.fan_mode as 'on' | 'auto'
+        }));
       }
       return handleApiError(error);
     }
@@ -493,17 +505,36 @@ const thermostats = {
       if (isTestModeActive()) {
         console.log('Test mode active: Returning mock thermostat data');
         const thermostat = MOCK_DATA.thermostats.find(t => t.id === id);
-        if (thermostat) return thermostat;
-        return MOCK_DATA.thermostats[0]; // Return first mock thermostat if ID not found
+        if (thermostat) {
+          return {
+            ...thermostat,
+            mode: thermostat.mode as 'heat' | 'cool' | 'auto' | 'off',
+            fan_mode: thermostat.fan_mode as 'on' | 'auto'
+          };
+        }
+        // Return first mock thermostat if ID not found
+        return {
+          ...MOCK_DATA.thermostats[0],
+          mode: MOCK_DATA.thermostats[0].mode as 'heat' | 'cool' | 'auto' | 'off',
+          fan_mode: MOCK_DATA.thermostats[0].fan_mode as 'on' | 'auto'
+        };
       }
       
       const response = await axios.get(`${API_URL}/thermostats/${id}/`);
-      return response.data;
+      return {
+        ...response.data,
+        mode: response.data.mode as 'heat' | 'cool' | 'auto' | 'off',
+        fan_mode: response.data.fan_mode as 'on' | 'auto'
+      };
     } catch (error) {
       // If in test mode, return mock data even on error
       if (isTestModeActive()) {
         console.log('Test mode active: Returning mock thermostat data after error');
-        return MOCK_DATA.thermostats[0];
+        return {
+          ...MOCK_DATA.thermostats[0],
+          mode: MOCK_DATA.thermostats[0].mode as 'heat' | 'cool' | 'auto' | 'off',
+          fan_mode: MOCK_DATA.thermostats[0].fan_mode as 'on' | 'auto'
+        };
       }
       return handleApiError(error);
     }
@@ -514,16 +545,32 @@ const thermostats = {
       // Return mock data if in test mode
       if (isTestModeActive()) {
         console.log('Test mode active: Returning mock thermostats for property');
-        return MOCK_DATA.thermostats.filter(t => t.property_id === propertyId);
+        return MOCK_DATA.thermostats
+          .filter(t => t.property_id === propertyId)
+          .map(thermostat => ({
+            ...thermostat,
+            mode: thermostat.mode as 'heat' | 'cool' | 'auto' | 'off',
+            fan_mode: thermostat.fan_mode as 'on' | 'auto'
+          }));
       }
       
       const response = await axios.get(`${API_URL}/properties/${propertyId}/thermostats/`);
-      return response.data;
+      return response.data.map((thermostat: any) => ({
+        ...thermostat,
+        mode: thermostat.mode as 'heat' | 'cool' | 'auto' | 'off',
+        fan_mode: thermostat.fan_mode as 'on' | 'auto'
+      }));
     } catch (error) {
       // If in test mode, return mock data even on error
       if (isTestModeActive()) {
         console.log('Test mode active: Returning mock thermostats for property after error');
-        return MOCK_DATA.thermostats.filter(t => t.property_id === propertyId);
+        return MOCK_DATA.thermostats
+          .filter(t => t.property_id === propertyId)
+          .map(thermostat => ({
+            ...thermostat,
+            mode: thermostat.mode as 'heat' | 'cool' | 'auto' | 'off',
+            fan_mode: thermostat.fan_mode as 'on' | 'auto'
+          }));
       }
       return handleApiError(error);
     }
@@ -538,13 +585,19 @@ const thermostats = {
           ...MOCK_DATA.thermostats[0],
           ...data,
           id: `mock-therm-${Date.now()}`,
+          mode: (data.mode || MOCK_DATA.thermostats[0].mode) as 'heat' | 'cool' | 'auto' | 'off',
+          fan_mode: (data.fan_mode || MOCK_DATA.thermostats[0].fan_mode) as 'on' | 'auto',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
       }
       
       const response = await axios.post(`${API_URL}/thermostats/`, data);
-      return response.data;
+      return {
+        ...response.data,
+        mode: response.data.mode as 'heat' | 'cool' | 'auto' | 'off',
+        fan_mode: response.data.fan_mode as 'on' | 'auto'
+      };
     } catch (error) {
       // If in test mode, return mock data even on error
       if (isTestModeActive()) {
@@ -553,6 +606,8 @@ const thermostats = {
           ...MOCK_DATA.thermostats[0],
           ...data,
           id: `mock-therm-${Date.now()}`,
+          mode: (data.mode || MOCK_DATA.thermostats[0].mode) as 'heat' | 'cool' | 'auto' | 'off',
+          fan_mode: (data.fan_mode || MOCK_DATA.thermostats[0].fan_mode) as 'on' | 'auto',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
@@ -570,12 +625,18 @@ const thermostats = {
           ...MOCK_DATA.thermostats[0],
           ...data,
           id,
+          mode: (data.mode || MOCK_DATA.thermostats[0].mode) as 'heat' | 'cool' | 'auto' | 'off',
+          fan_mode: (data.fan_mode || MOCK_DATA.thermostats[0].fan_mode) as 'on' | 'auto',
           updated_at: new Date().toISOString()
         };
       }
       
       const response = await axios.put(`${API_URL}/thermostats/${id}/`, data);
-      return response.data;
+      return {
+        ...response.data,
+        mode: response.data.mode as 'heat' | 'cool' | 'auto' | 'off',
+        fan_mode: response.data.fan_mode as 'on' | 'auto'
+      };
     } catch (error) {
       // If in test mode, return mock data even on error
       if (isTestModeActive()) {
@@ -584,6 +645,8 @@ const thermostats = {
           ...MOCK_DATA.thermostats[0],
           ...data,
           id,
+          mode: (data.mode || MOCK_DATA.thermostats[0].mode) as 'heat' | 'cool' | 'auto' | 'off',
+          fan_mode: (data.fan_mode || MOCK_DATA.thermostats[0].fan_mode) as 'on' | 'auto',
           updated_at: new Date().toISOString()
         };
       }
@@ -600,6 +663,8 @@ const thermostats = {
           ...MOCK_DATA.thermostats[0],
           id,
           target_temperature: temperature,
+          mode: MOCK_DATA.thermostats[0].mode as 'heat' | 'cool' | 'auto' | 'off',
+          fan_mode: MOCK_DATA.thermostats[0].fan_mode as 'on' | 'auto',
           updated_at: new Date().toISOString()
         };
       }
@@ -607,7 +672,11 @@ const thermostats = {
       const response = await axios.post(`${API_URL}/thermostats/${id}/set_temperature/`, {
         target_temperature: temperature
       });
-      return response.data;
+      return {
+        ...response.data,
+        mode: response.data.mode as 'heat' | 'cool' | 'auto' | 'off',
+        fan_mode: response.data.fan_mode as 'on' | 'auto'
+      };
     } catch (error) {
       // If in test mode, return mock data even on error
       if (isTestModeActive()) {
@@ -616,6 +685,8 @@ const thermostats = {
           ...MOCK_DATA.thermostats[0],
           id,
           target_temperature: temperature,
+          mode: MOCK_DATA.thermostats[0].mode as 'heat' | 'cool' | 'auto' | 'off',
+          fan_mode: MOCK_DATA.thermostats[0].fan_mode as 'on' | 'auto',
           updated_at: new Date().toISOString()
         };
       }
@@ -632,6 +703,7 @@ const thermostats = {
           ...MOCK_DATA.thermostats[0],
           id,
           mode: mode as 'heat' | 'cool' | 'auto' | 'off',
+          fan_mode: MOCK_DATA.thermostats[0].fan_mode as 'on' | 'auto',
           updated_at: new Date().toISOString()
         };
       }
@@ -639,7 +711,11 @@ const thermostats = {
       const response = await axios.post(`${API_URL}/thermostats/${id}/set_mode/`, {
         mode
       });
-      return response.data;
+      return {
+        ...response.data,
+        mode: response.data.mode as 'heat' | 'cool' | 'auto' | 'off',
+        fan_mode: response.data.fan_mode as 'on' | 'auto'
+      };
     } catch (error) {
       // If in test mode, return mock data even on error
       if (isTestModeActive()) {
@@ -648,6 +724,7 @@ const thermostats = {
           ...MOCK_DATA.thermostats[0],
           id,
           mode: mode as 'heat' | 'cool' | 'auto' | 'off',
+          fan_mode: MOCK_DATA.thermostats[0].fan_mode as 'on' | 'auto',
           updated_at: new Date().toISOString()
         };
       }
