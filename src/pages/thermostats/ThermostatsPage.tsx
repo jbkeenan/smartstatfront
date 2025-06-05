@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import type { Thermostat } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
-import { useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import ErrorHandler from '../../components/shared/ErrorHandler';
 
 // Define the allowed thermostat modes
@@ -26,19 +26,20 @@ const ThermostatsPage: React.FC = () => {
     is_online: true
   });
   
-  const location = useLocation();
+  const { propertyId } = useParams();
+  const navigate = useNavigate();
   
   useEffect(() => {
-    // Check if there's a property filter in the URL
-    const params = new URLSearchParams(location.search);
-    const propertyId = params.get('property');
+    // Use the property ID from the URL parameters
     if (propertyId) {
       setSelectedPropertyId(propertyId);
       fetchThermostats(propertyId);
     } else {
-      fetchThermostats();
+      // This should not happen with the new routing structure
+      console.error("No property ID found in URL parameters");
+      navigate('/properties');
     }
-  }, [location.search]);
+  }, [propertyId, navigate]);
 
   const fetchThermostats = async (propertyId?: string) => {
     setIsLoading(true);
@@ -176,28 +177,21 @@ const ThermostatsPage: React.FC = () => {
       <ErrorHandler error={error} onRetry={() => fetchThermostats(selectedPropertyId || undefined)} />
       
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">
-          {selectedPropertyId ? 'Property Thermostats' : 'All Thermostats'}
-        </h2>
-        <div className="flex space-x-2">
-          {selectedPropertyId && (
-            <button
-              onClick={() => {
-                setSelectedPropertyId(null);
-                fetchThermostats();
-              }}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-            >
-              View All Thermostats
-            </button>
-          )}
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Property Thermostats</h2>
           <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            onClick={() => navigate('/properties')}
+            className="text-sm text-blue-600 hover:text-blue-800"
           >
-            {showAddForm ? 'Cancel' : 'Add Thermostat'}
+            ← Back to Properties
           </button>
         </div>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        >
+          {showAddForm ? 'Cancel' : 'Add Thermostat'}
+        </button>
       </div>
       
       {showAddForm && (
@@ -221,22 +215,25 @@ const ThermostatsPage: React.FC = () => {
                 />
               </div>
               
-              {!selectedPropertyId && (
-                <div>
-                  <label htmlFor="property_id" className="block text-sm font-medium text-gray-700 mb-1">
-                    Property ID
-                  </label>
-                  <input
-                    type="text"
-                    id="property_id"
-                    name="property_id"
-                    value={newThermostat.property_id}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              )}
+              <div>
+                <label htmlFor="model_type" className="block text-sm font-medium text-gray-700 mb-1">
+                  Thermostat Model
+                </label>
+                <select
+                  id="model_type"
+                  name="model"
+                  value={newThermostat.model}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select a model</option>
+                  <option value="Nest">Nest</option>
+                  <option value="Cielo">Cielo</option>
+                  <option value="Pioneer">Pioneer</option>
+                  <option value="Smart Thermostat Pro">Smart Thermostat Pro</option>
+                </select>
+              </div>
               
               <div>
                 <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">

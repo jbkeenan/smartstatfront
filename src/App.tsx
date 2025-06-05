@@ -42,21 +42,14 @@ function App() {
                 </Layout>
               </PrivateRoute>
             } />
-            <Route path="/thermostats" element={
+            <Route path="/properties/:propertyId/thermostats" element={
               <PrivateRoute>
                 <Layout>
                   <ThermostatsPage />
                 </Layout>
               </PrivateRoute>
             } />
-            <Route path="/schedules" element={
-              <PrivateRoute>
-                <Layout>
-                  <SchedulesPage />
-                </Layout>
-              </PrivateRoute>
-            } />
-            <Route path="/calendars" element={
+            <Route path="/properties/:propertyId/calendar" element={
               <PrivateRoute>
                 <Layout>
                   <CalendarsPage />

@@ -327,12 +327,20 @@ const PropertiesPage: React.FC = () => {
                 </div>
                 
                 <div className="flex justify-between items-center">
-                  <a
-                    href={`/thermostats?property=${property.id}`}
-                    className="text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    View Thermostats
-                  </a>
+                  <div className="flex space-x-4">
+                    <Link
+                      to={`/properties/${property.id}/thermostats`}
+                      className="text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Thermostats
+                    </Link>
+                    <Link
+                      to={`/properties/${property.id}/calendar`}
+                      className="text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Calendar
+                    </Link>
+                  </div>
                   <button
                     onClick={() => handleDeleteProperty(property.id)}
                     className="px-3 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200"

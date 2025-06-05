@@ -108,8 +108,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Debug the request payload
       console.log('Login attempt with:', { email, password: '********' });
       
+      // First try to login with email as the email field
+      try {
+        const response = await axios.post(`${API_URL}/auth/login/`, {
+          email: email,
+          password
+        });
+        
+        console.log('Login response:', response.data);
+        
+        const { token, user } = response.data;
+        localStorage.setItem('token', token);
+        setUser(user);
+        
+        // Redirect to dashboard or intended page
+        const origin = location.state?.from?.pathname || '/dashboard';
+        navigate(origin);
+        return;
+      } catch (emailErr) {
+        console.log('Email login failed, trying with username field');
+      }
+      
+      // If that fails, try with email as the username field (backward compatibility)
       const response = await axios.post(`${API_URL}/auth/login/`, {
-        username: email, // Backend expects username field but we use email
+        username: email,
         password
       });
       

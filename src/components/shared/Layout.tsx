@@ -31,15 +31,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <li className={isActive('/properties')}>
                 <Link to="/properties">Properties</Link>
               </li>
-              <li className={isActive('/thermostats')}>
-                <Link to="/thermostats">Thermostats</Link>
-              </li>
-              <li className={isActive('/schedules')}>
-                <Link to="/schedules">Schedules</Link>
-              </li>
-              <li className={isActive('/calendars')}>
-                <Link to="/calendars">Calendars</Link>
-              </li>
               <li className={isActive('/business-analysis')}>
                 <Link to="/business-analysis">Analytics</Link>
               </li>
