@@ -1,76 +1,77 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './hooks/useAuth';
-import PrivateRoute from './components/shared/PrivateRoute';
-import EnhancedLandingPage from './components/EnhancedLandingPage';
-import LoginPage from './components/LoginPage';
-import RegisterPage from './components/RegisterPage';
-import DashboardPage from './pages/dashboard/DashboardPage';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Login from './components/Login';
+import Register from './components/Register';
+import LandingPage from './pages/LandingPage';
+import Dashboard from './pages/Dashboard';
 import PropertiesPage from './pages/properties/PropertiesPage';
+import PropertyDetailPage from './pages/properties/PropertyDetailPage';
 import ThermostatsPage from './pages/thermostats/ThermostatsPage';
-// Removed unused import
 import CalendarsPage from './pages/calendars/CalendarsPage';
-import BusinessAnalysisPage from './pages/business-analysis/BusinessAnalysisPage';
-import FAQPage from './components/FAQPage';
-import Layout from './components/shared/Layout';
-import ErrorHandler from './components/shared/ErrorHandler';
-import './App.css';
+import StatisticsPage from './pages/statistics/StatisticsPage';
+import FAQPage from './pages/FAQPage';
+import NotFoundPage from './pages/NotFoundPage';
+import './styles/main.scss';
 
-function App() {
+const App: React.FC = () => {
   return (
-    <Router>
-      <ErrorHandler error={null}>
-        <AuthProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<EnhancedLandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/faq" element={<FAQPage />} />
-            
-            {/* Protected routes */}
-            <Route path="/dashboard" element={
-              <PrivateRoute>
-                <Layout>
-                  <DashboardPage />
-                </Layout>
-              </PrivateRoute>
-            } />
-            <Route path="/properties" element={
-              <PrivateRoute>
-                <Layout>
-                  <PropertiesPage />
-                </Layout>
-              </PrivateRoute>
-            } />
-            <Route path="/properties/:propertyId/thermostats" element={
-              <PrivateRoute>
-                <Layout>
-                  <ThermostatsPage />
-                </Layout>
-              </PrivateRoute>
-            } />
-            <Route path="/properties/:propertyId/calendar" element={
-              <PrivateRoute>
-                <Layout>
-                  <CalendarsPage />
-                </Layout>
-              </PrivateRoute>
-            } />
-            <Route path="/business-analysis" element={
-              <PrivateRoute>
-                <Layout>
-                  <BusinessAnalysisPage />
-                </Layout>
-              </PrivateRoute>
-            } />
-            
-            {/* Fallback route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </AuthProvider>
-      </ErrorHandler>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/faq" element={<FAQPage />} />
+          
+          {/* Protected routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/properties" element={
+            <ProtectedRoute>
+              <PropertiesPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/properties/:id" element={
+            <ProtectedRoute>
+              <PropertyDetailPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/thermostats" element={
+            <ProtectedRoute>
+              <ThermostatsPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/calendars" element={
+            <ProtectedRoute>
+              <CalendarsPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/statistics" element={
+            <ProtectedRoute>
+              <StatisticsPage />
+            </ProtectedRoute>
+          } />
+          
+          {/* Redirect /home to /dashboard */}
+          <Route path="/home" element={<Navigate to="/dashboard" replace />} />
+          
+          {/* 404 route */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
-}
+};
 
 export default App;

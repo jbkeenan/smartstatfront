@@ -1,505 +1,178 @@
 import React, { useState, useEffect } from 'react';
-import { calendarsApi, type Calendar, type CalendarEvent } from '../../lib/api';
-import { useAuth } from '../../hooks/useAuth';
-import { useParams, useNavigate } from 'react-router-dom';
+import { propertyService } from '../../services/api';
+import Navbar from '../../components/layout/Navbar';
+import Sidebar from '../../components/layout/Sidebar';
+import CalendarView from '../../components/calendar/CalendarView';
+import CalendarSyncModal from '../../components/calendar/CalendarSyncModal';
 
 const CalendarsPage: React.FC = () => {
-  const { isTestMode } = useAuth();
-  const { propertyId } = useParams();
-  const navigate = useNavigate();
-  
-  const [calendars, setCalendars] = useState<Calendar[]>([]);
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [properties, setProperties] = useState<any[]>([]);
+  const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
+  const [calendar, setCalendar] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedCalendarId, setSelectedCalendarId] = useState<string | null>(null);
-  // Removed unused state variables
-  const [newCalendar, setNewCalendar] = useState({
-    name: '',
-    description: '',
-    color: '#4f46e5',
-    is_active: true,
-    property_id: propertyId || '',
-    ical_url: ''
-  });
-  const [newEvent, setNewEvent] = useState({
-    title: '',
-    description: '',
-    start_date: '',
-    end_date: '',
-    calendar_id: ''
-  });
-  const [showAddEventForm, setShowAddEventForm] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!propertyId) {
-      // Redirect to properties if no property ID is provided
-      navigate('/properties');
-      return;
-    }
-    
-    fetchCalendars();
-  }, [propertyId, navigate]);
+    fetchProperties();
+  }, []);
 
   useEffect(() => {
-    if (selectedCalendarId) {
-      fetchEvents(selectedCalendarId);
-    } else {
-      setEvents([]);
+    if (selectedProperty) {
+      fetchCalendar(selectedProperty);
     }
-  }, [selectedCalendarId]);
+  }, [selectedProperty]);
 
-  const fetchCalendars = async () => {
-    setIsLoading(true);
+  const fetchProperties = async () => {
+    setLoading(true);
     setError(null);
-    try {
-      const data = await calendarsApi.getAll();
-      setCalendars(data);
-      if (data.length > 0 && !selectedCalendarId) {
-        setSelectedCalendarId(data[0].id);
-      }
-    } catch (err) {
-      console.error('Error fetching calendars:', err);
-      setError('Failed to load calendars. Please try again later.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchEvents = async (calendarId: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await calendarsApi.getEvents(calendarId);
-      setEvents(data);
-    } catch (err) {
-      console.error('Error fetching events:', err);
-      setError('Failed to load calendar events. Please try again later.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCalendarInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setNewCalendar(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleEventInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setNewEvent(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleAddCalendar = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-    try {
-      const addedCalendar = await calendarsApi.create(newCalendar);
-      setCalendars(prev => [...prev, addedCalendar]);
-      setNewCalendar({
-        name: '',
-        description: '',
-        color: '#4f46e5',
-        is_active: true,
-        property_id: propertyId || '',
-        ical_url: ''
-      });
-      setShowAddForm(false);
-      if (!selectedCalendarId) {
-        setSelectedCalendarId(addedCalendar.id);
-      }
-    } catch (err) {
-      console.error('Error adding calendar:', err);
-      setError('Failed to add calendar. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAddEvent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedCalendarId) return;
     
-    setIsLoading(true);
-    setError(null);
     try {
-      const eventData = {
-        ...newEvent,
-        calendar_id: selectedCalendarId
-      };
+      const response = await propertyService.getProperties();
+      setProperties(response.data);
       
-      const addedEvent = await calendarsApi.createEvent(eventData);
-      setEvents(prev => [...prev, addedEvent]);
-      setNewEvent({
-        title: '',
-        description: '',
-        start_date: '',
-        end_date: '',
-        calendar_id: ''
-      });
-      setShowAddEventForm(false);
-    } catch (err) {
-      console.error('Error adding event:', err);
-      setError('Failed to add event. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteCalendar = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this calendar? All associated events will also be deleted.')) {
-      return;
-    }
-    
-    setIsLoading(true);
-    setError(null);
-    try {
-      await calendarsApi.delete(id);
-      setCalendars(prev => prev.filter(calendar => calendar.id !== id));
-      if (selectedCalendarId === id) {
-        const remainingCalendars = calendars.filter(calendar => calendar.id !== id);
-        setSelectedCalendarId(remainingCalendars.length > 0 ? remainingCalendars[0].id : null);
+      // Select the first property by default if available
+      if (response.data.length > 0 && !selectedProperty) {
+        setSelectedProperty(response.data[0].id);
       }
-    } catch (err) {
-      console.error('Error deleting calendar:', err);
-      setError('Failed to delete calendar. Please try again.');
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to load properties');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleDeleteEvent = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this event?')) {
-      return;
-    }
-    
-    setIsLoading(true);
+  const fetchCalendar = async (propertyId: string) => {
+    setLoading(true);
     setError(null);
+    
     try {
-      await calendarsApi.deleteEvent(id);
-      setEvents(prev => prev.filter(event => event.id !== id));
-    } catch (err) {
-      console.error('Error deleting event:', err);
-      setError('Failed to delete event. Please try again.');
+      const response = await propertyService.getCalendar(propertyId);
+      setCalendar(response.data);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to load calendar');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const handlePropertyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedProperty(e.target.value);
   };
 
-  if (isLoading && calendars.length === 0) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
+  const handleEventAdd = async (eventData: any) => {
+    if (!selectedProperty) return;
+    
+    try {
+      await propertyService.addCalendarEvent(selectedProperty, eventData);
+      fetchCalendar(selectedProperty); // Refresh calendar
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to add event');
+    }
+  };
+
+  const handleEventUpdate = async (eventId: string, eventData: any) => {
+    if (!selectedProperty) return;
+    
+    try {
+      await propertyService.updateCalendarEvent(selectedProperty, eventId, eventData);
+      fetchCalendar(selectedProperty); // Refresh calendar
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to update event');
+    }
+  };
+
+  const handleEventDelete = async (eventId: string) => {
+    if (!selectedProperty) return;
+    
+    try {
+      await propertyService.deleteCalendarEvent(selectedProperty, eventId);
+      fetchCalendar(selectedProperty); // Refresh calendar
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to delete event');
+    }
+  };
+
+  const handleCalendarSync = async (syncData: any) => {
+    if (!selectedProperty) return;
+    
+    try {
+      await propertyService.syncCalendar(selectedProperty, syncData);
+      setShowSyncModal(false);
+      fetchCalendar(selectedProperty); // Refresh calendar
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to sync calendar');
+    }
+  };
 
   return (
-    <div>
-      {isTestMode && (
-        <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700">
-          <p className="font-bold">Test Mode Active</p>
-          <p>You are viewing simulated data. No actual calendar data is being modified.</p>
-        </div>
-      )}
-      
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700">
-          <p className="font-bold">Error</p>
-          <p>{error}</p>
-        </div>
-      )}
-      
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Property Calendar</h2>
-          <button
-            onClick={() => navigate('/properties')}
-            className="text-sm text-blue-600 hover:text-blue-800"
-          >
-            ← Back to Properties
-          </button>
-        </div>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            {showAddForm ? 'Cancel' : 'Add Calendar'}
-          </button>
-        </div>
-      </div>
-      
-      {showAddForm && (
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-4">Add New Calendar</h3>
-          <form onSubmit={handleAddCalendar}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                  Calendar Name
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={newCalendar.name}
-                  onChange={handleCalendarInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., Work Schedule, Vacation Days"
-                />
-              </div>
-              <div>
-                <label htmlFor="color" className="block text-sm font-medium text-gray-700 mb-1">
-                  Color
-                </label>
-                <div className="flex items-center">
-                  <input
-                    type="color"
-                    id="color"
-                    name="color"
-                    value={newCalendar.color}
-                    onChange={handleCalendarInputChange}
-                    className="h-10 w-10 border border-gray-300 rounded-md mr-2"
-                  />
-                  <input
-                    type="text"
-                    value={newCalendar.color}
-                    onChange={handleCalendarInputChange}
-                    name="color"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-              <div className="md:col-span-2">
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={newCalendar.description}
-                  onChange={handleCalendarInputChange}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Calendar description..."
-                ></textarea>
-              </div>
-              <div className="md:col-span-2">
-                <label htmlFor="ical_url" className="block text-sm font-medium text-gray-700 mb-1">
-                  iCal URL
-                </label>
-                <input
-                  type="url"
-                  id="ical_url"
-                  name="ical_url"
-                  value={newCalendar.ical_url}
-                  onChange={handleCalendarInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="https://example.com/calendar.ics"
-                />
-                <p className="mt-1 text-sm text-gray-500">Enter the iCal URL for this property's guest check-in calendar</p>
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+    <div className="app-container">
+      <Navbar />
+      <div className="content-wrapper">
+        <Sidebar />
+        <main className="main-content">
+          <div className="page-header">
+            <h1>Calendars</h1>
+            <div className="header-actions">
+              <select 
+                value={selectedProperty || ''} 
+                onChange={handlePropertyChange}
+                disabled={loading || properties.length === 0}
               >
-                {isLoading ? 'Adding...' : 'Add Calendar'}
+                {properties.length === 0 ? (
+                  <option value="">No properties available</option>
+                ) : (
+                  properties.map(property => (
+                    <option key={property.id} value={property.id}>
+                      {property.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => setShowSyncModal(true)}
+                disabled={!selectedProperty}
+              >
+                Sync Calendar
               </button>
             </div>
-          </form>
-        </div>
-      )}
-      
-      {calendars.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-6 text-center">
-          <p className="text-gray-500">No calendars found. Add your first calendar to get started.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">My Calendars</h3>
-              <ul className="space-y-2">
-                {calendars.map(calendar => (
-                  <li key={calendar.id} className="flex items-center justify-between">
-                    <button
-                      onClick={() => setSelectedCalendarId(calendar.id)}
-                      className={`flex items-center py-2 px-3 rounded-md w-full text-left ${
-                        selectedCalendarId === calendar.id ? 'bg-blue-50' : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <span
-                        className="w-4 h-4 rounded-full mr-3"
-                        style={{ backgroundColor: calendar.color }}
-                      ></span>
-                      <span className={`${selectedCalendarId === calendar.id ? 'font-medium' : ''}`}>
-                        {calendar.name}
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => handleDeleteCalendar(calendar.id)}
-                      className="ml-2 text-red-500 hover:text-red-700"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
           </div>
-          
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg shadow p-6">
-              {selectedCalendarId ? (
-                <>
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-semibold text-gray-700">
-                      {calendars.find(c => c.id === selectedCalendarId)?.name} Events
-                    </h3>
-                    <button
-                      onClick={() => setShowAddEventForm(!showAddEventForm)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    >
-                      {showAddEventForm ? 'Cancel' : 'Add Event'}
-                    </button>
-                  </div>
-                  
-                  {showAddEventForm && (
-                    <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                      <h4 className="text-md font-semibold text-gray-700 mb-3">Add New Event</h4>
-                      <form onSubmit={handleAddEvent}>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                          <div>
-                            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                              Event Title
-                            </label>
-                            <input
-                              type="text"
-                              id="title"
-                              name="title"
-                              value={newEvent.title}
-                              onChange={handleEventInputChange}
-                              required
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            />
-                          </div>
-                          <div className="md:col-span-2">
-                            <label htmlFor="event-description" className="block text-sm font-medium text-gray-700 mb-1">
-                              Description
-                            </label>
-                            <textarea
-                              id="event-description"
-                              name="description"
-                              value={newEvent.description}
-                              onChange={handleEventInputChange}
-                              rows={2}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                              placeholder="Event description..."
-                            ></textarea>
-                          </div>
-                          <div>
-                            <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-1">
-                              Start Date & Time
-                            </label>
-                            <input
-                              type="datetime-local"
-                              id="start_date"
-                              name="start_date"
-                              value={newEvent.start_date}
-                              onChange={handleEventInputChange}
-                              required
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            />
-                          </div>
-                          <div>
-                            <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 mb-1">
-                              End Date & Time
-                            </label>
-                            <input
-                              type="datetime-local"
-                              id="end_date"
-                              name="end_date"
-                              value={newEvent.end_date}
-                              onChange={handleEventInputChange}
-                              required
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            />
-                          </div>
-                        </div>
-                        <div className="flex justify-end">
-                          <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                          >
-                            {isLoading ? 'Adding...' : 'Add Event'}
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  )}
-                  
-                  {events.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-gray-500">No events found for this calendar.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {events.map(event => (
-                        <div key={event.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-                          <div className="flex justify-between">
-                            <h4 className="text-lg font-medium text-gray-800">{event.title}</h4>
-                            <button
-                              onClick={() => handleDeleteEvent(event.id)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                          {event.description && (
-                            <p className="text-gray-600 mt-1">{event.description}</p>
-                          )}
-                          <div className="flex items-center mt-2 text-sm text-gray-500">
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <span>{formatDate(event.start_date)} - {formatDate(event.end_date)}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">Select a calendar to view events.</p>
-                </div>
-              )}
+
+          {error && (
+            <div className="alert alert-danger">
+              {error}
+              <button onClick={() => setError(null)}>×</button>
             </div>
-          </div>
-        </div>
+          )}
+
+          {loading ? (
+            <div className="loading-container">
+              <div className="loading-spinner"></div>
+              <p>Loading calendar...</p>
+            </div>
+          ) : !selectedProperty ? (
+            <div className="empty-state">
+              <h3>No property selected</h3>
+              <p>Please select a property to view its calendar</p>
+            </div>
+          ) : (
+            <CalendarView
+              calendar={calendar}
+              onEventAdd={handleEventAdd}
+              onEventUpdate={handleEventUpdate}
+              onEventDelete={handleEventDelete}
+            />
+          )}
+        </main>
+      </div>
+
+      {showSyncModal && selectedProperty && (
+        <CalendarSyncModal
+          propertyId={selectedProperty}
+          onSync={handleCalendarSync}
+          onClose={() => setShowSyncModal(false)}
+        />
       )}
     </div>
   );
