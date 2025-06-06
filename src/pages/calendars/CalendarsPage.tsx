@@ -14,7 +14,7 @@ const CalendarsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedCalendarId, setSelectedCalendarId] = useState<string | null>(null);
-  const [icalLink, setIcalLink] = useState<string>('');
+  // Removed unused state variables
   const [newCalendar, setNewCalendar] = useState({
     name: '',
     description: '',
@@ -102,7 +102,9 @@ const CalendarsPage: React.FC = () => {
         name: '',
         description: '',
         color: '#4f46e5',
-        is_active: true
+        is_active: true,
+        property_id: propertyId || '',
+        ical_url: ''
       });
       setShowAddForm(false);
       if (!selectedCalendarId) {
@@ -412,6 +414,7 @@ const CalendarsPage: React.FC = () => {
                               onChange={handleEventInputChange}
                               rows={2}
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Event description..."
                             ></textarea>
                           </div>
                           <div>
@@ -463,15 +466,15 @@ const CalendarsPage: React.FC = () => {
                   ) : (
                     <div className="space-y-4">
                       {events.map(event => (
-                        <div key={event.id} className="border-l-4 pl-4 py-3" style={{ borderColor: calendars.find(c => c.id === selectedCalendarId)?.color || '#4f46e5' }}>
+                        <div key={event.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
                           <div className="flex justify-between">
-                            <h4 className="font-medium text-gray-800">{event.title}</h4>
+                            <h4 className="text-lg font-medium text-gray-800">{event.title}</h4>
                             <button
                               onClick={() => handleDeleteEvent(event.id)}
                               className="text-red-500 hover:text-red-700"
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                               </svg>
                             </button>
                           </div>

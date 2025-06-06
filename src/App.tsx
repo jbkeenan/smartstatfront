@@ -7,7 +7,7 @@ import RegisterPage from './components/RegisterPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import PropertiesPage from './pages/properties/PropertiesPage';
 import ThermostatsPage from './pages/thermostats/ThermostatsPage';
-import SchedulesPage from './pages/schedules/SchedulesPage';
+// Removed unused import
 import CalendarsPage from './pages/calendars/CalendarsPage';
 import BusinessAnalysisPage from './pages/business-analysis/BusinessAnalysisPage';
 import FAQPage from './components/FAQPage';

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { propertiesApi } from '../../lib/api';
 import type { Property } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
