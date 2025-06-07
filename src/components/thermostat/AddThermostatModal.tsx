@@ -1,108 +1,101 @@
 import React, { useState } from 'react';
-import './AddThermostatModal.css';
+import { useAuth } from '../../contexts/AuthContext';
+import { addThermostat } from '../../services/api';
+import './AddThermostatModal.scss';
 
 interface AddThermostatModalProps {
-  onAdd: (thermostatData: any) => void;
+  onAdd: (thermostat: any) => void;
   onClose: () => void;
 }
 
 const AddThermostatModal: React.FC<AddThermostatModalProps> = ({ onAdd, onClose }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    brand: 'nest',
-    model: '',
-    device_id: '',
-    target_temperature: 72,
-    api_key: '',
-    api_token: ''
-  });
-  
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
-  
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    // Clear error when field is edited
-    if (errors[name]) {
-      setErrors(prev => {
-        const newErrors = {...prev};
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-  
-  const validate = () => {
-    const newErrors: {[key: string]: string} = {};
-    
-    if (!formData.name.trim()) {
-      newErrors.name = 'Thermostat name is required';
-    }
-    
-    if (!formData.model.trim()) {
-      newErrors.model = 'Model is required';
-    }
-    
-    if (!formData.device_id.trim()) {
-      newErrors.device_id = 'Device ID is required';
-    }
-    
-    if (formData.target_temperature < 50 || formData.target_temperature > 90) {
-      newErrors.target_temperature = 'Temperature must be between 50°F and 90°F';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-  
-  const handleSubmit = (e: React.FormEvent) => {
+  const [name, setName] = useState('');
+  const [brand, setBrand] = useState('nest');
+  const [model, setModel] = useState('');
+  const [deviceId, setDeviceId] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [apiToken, setApiToken] = useState('');
+  const [propertyId, setPropertyId] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { isTestMode } = useAuth();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (validate()) {
-      // Convert target_temperature to number
+    if (!name || !brand || !model || !deviceId || !propertyId) {
+      setError('Please fill in all required fields');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
       const thermostatData = {
-        ...formData,
-        target_temperature: Number(formData.target_temperature)
+        name,
+        brand,
+        model,
+        device_id: deviceId,
+        api_key: apiKey,
+        api_token: apiToken,
+        property: propertyId
       };
       
-      onAdd(thermostatData);
+      const newThermostat = isTestMode 
+        ? { 
+            id: `test-${Date.now()}`,
+            name,
+            brand,
+            model,
+            propertyId,
+            propertyName: 'Test Property',
+            currentTemperature: 72,
+            targetTemperature: 70,
+            mode: 'heat',
+            isOnline: true
+          }
+        : await addThermostat(thermostatData);
+      
+      onAdd(newThermostat);
+    } catch (err) {
+      setError('Failed to add thermostat. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
-  
+
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
+      <div className="add-thermostat-modal">
         <div className="modal-header">
           <h2>Add New Thermostat</h2>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
         
         <form onSubmit={handleSubmit}>
+          {error && <div className="error-message">{error}</div>}
+          
           <div className="form-group">
-            <label htmlFor="name">Thermostat Name</label>
+            <label htmlFor="name">Thermostat Name *</label>
             <input
               type="text"
               id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className={errors.name ? 'error' : ''}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               placeholder="Living Room Thermostat"
+              required
             />
-            {errors.name && <div className="error-message">{errors.name}</div>}
           </div>
           
           <div className="form-group">
-            <label htmlFor="brand">Brand</label>
+            <label htmlFor="brand">Brand *</label>
             <select
               id="brand"
-              name="brand"
-              value={formData.brand}
-              onChange={handleChange}
+              value={brand}
+              onChange={(e) => setBrand(e.target.value)}
+              required
             >
               <option value="nest">Google Nest</option>
               <option value="cielo">Cielo</option>
@@ -112,79 +105,81 @@ const AddThermostatModal: React.FC<AddThermostatModalProps> = ({ onAdd, onClose 
           </div>
           
           <div className="form-group">
-            <label htmlFor="model">Model</label>
+            <label htmlFor="model">Model *</label>
             <input
               type="text"
               id="model"
-              name="model"
-              value={formData.model}
-              onChange={handleChange}
-              className={errors.model ? 'error' : ''}
-              placeholder="E.g., Nest Learning Thermostat"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              placeholder="Thermostat E"
+              required
             />
-            {errors.model && <div className="error-message">{errors.model}</div>}
           </div>
           
           <div className="form-group">
-            <label htmlFor="device_id">Device ID</label>
+            <label htmlFor="deviceId">Device ID *</label>
             <input
               type="text"
-              id="device_id"
-              name="device_id"
-              value={formData.device_id}
-              onChange={handleChange}
-              className={errors.device_id ? 'error' : ''}
-              placeholder="Unique device identifier"
+              id="deviceId"
+              value={deviceId}
+              onChange={(e) => setDeviceId(e.target.value)}
+              placeholder="Device identifier"
+              required
             />
-            {errors.device_id && <div className="error-message">{errors.device_id}</div>}
           </div>
           
           <div className="form-group">
-            <label htmlFor="target_temperature">Initial Target Temperature (°F)</label>
-            <input
-              type="number"
-              id="target_temperature"
-              name="target_temperature"
-              value={formData.target_temperature}
-              onChange={handleChange}
-              className={errors.target_temperature ? 'error' : ''}
-              min="50"
-              max="90"
-              step="0.5"
-            />
-            {errors.target_temperature && <div className="error-message">{errors.target_temperature}</div>}
+            <label htmlFor="propertyId">Property *</label>
+            <select
+              id="propertyId"
+              value={propertyId}
+              onChange={(e) => setPropertyId(e.target.value)}
+              required
+            >
+              <option value="">Select a property</option>
+              <option value="prop1">Beach House</option>
+              <option value="prop2">Mountain Cabin</option>
+              <option value="prop3">Downtown Apartment</option>
+            </select>
           </div>
           
           <div className="form-group">
-            <label htmlFor="api_key">API Key (Optional)</label>
+            <label htmlFor="apiKey">API Key (Optional)</label>
             <input
               type="text"
-              id="api_key"
-              name="api_key"
-              value={formData.api_key}
-              onChange={handleChange}
-              placeholder="For direct API integration"
+              id="apiKey"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="For direct API access"
             />
           </div>
           
           <div className="form-group">
-            <label htmlFor="api_token">API Token (Optional)</label>
+            <label htmlFor="apiToken">API Token (Optional)</label>
             <input
-              type="text"
-              id="api_token"
-              name="api_token"
-              value={formData.api_token}
-              onChange={handleChange}
-              placeholder="For direct API integration"
+              type="password"
+              id="apiToken"
+              value={apiToken}
+              onChange={(e) => setApiToken(e.target.value)}
+              placeholder="For direct API access"
             />
           </div>
           
-          <div className="modal-actions">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
+          <div className="form-actions">
+            <button 
+              type="button" 
+              className="btn btn-secondary" 
+              onClick={onClose}
+              disabled={loading}
+            >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
-              Add Thermostat
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              disabled={loading}
+            >
+              {loading ? 'Adding...' : 'Add Thermostat'}
             </button>
           </div>
         </form>

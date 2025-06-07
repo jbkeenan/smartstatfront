@@ -1,0 +1,132 @@
+.statistics-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  
+  .main-content {
+    display: flex;
+    flex: 1;
+    
+    .content-wrapper {
+      flex: 1;
+      padding: 2rem;
+      
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        
+        h1 {
+          margin: 0;
+          color: #333;
+        }
+        
+        .period-selector {
+          display: flex;
+          
+          .period-button {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-weight: 500;
+            
+            &:first-child {
+              border-radius: 4px 0 0 4px;
+            }
+            
+            &:last-child {
+              border-radius: 0 4px 4px 0;
+            }
+            
+            &.active {
+              background-color: #1E88E5;
+              color: white;
+              border-color: #1E88E5;
+            }
+            
+            &:hover:not(.active) {
+              background-color: #e0e0e0;
+            }
+          }
+        }
+      }
+      
+      .loading-spinner {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 200px;
+        color: #666;
+      }
+      
+      .error-message {
+        background-color: #FFEBEE;
+        color: #E53935;
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+      }
+      
+      .empty-state {
+        text-align: center;
+        padding: 3rem;
+        background-color: #F5F5F5;
+        border-radius: 8px;
+        
+        h2 {
+          margin-top: 0;
+          color: #333;
+        }
+        
+        p {
+          color: #666;
+          margin-bottom: 1.5rem;
+        }
+      }
+      
+      .statistics-content {
+        .statistics-widgets {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 1.5rem;
+          margin-bottom: 2rem;
+        }
+        
+        .statistics-charts {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 2rem;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .statistics-page {
+    .main-content {
+      flex-direction: column;
+      
+      .content-wrapper {
+        padding: 1rem;
+        
+        .page-header {
+          flex-direction: column;
+          align-items: flex-start;
+          
+          .period-selector {
+            margin-top: 1rem;
+            width: 100%;
+            
+            .period-button {
+              flex: 1;
+              text-align: center;
+            }
+          }
+        }
+      }
+    }
+  }
+}

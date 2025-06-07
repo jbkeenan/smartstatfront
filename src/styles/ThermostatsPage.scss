@@ -1,0 +1,96 @@
+.thermostats-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  
+  .main-content {
+    display: flex;
+    flex: 1;
+    
+    .content-wrapper {
+      flex: 1;
+      padding: 2rem;
+      
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        
+        h1 {
+          margin: 0;
+          color: #333;
+        }
+        
+        .btn-primary {
+          background-color: #1E88E5;
+          color: white;
+          border: none;
+          padding: 0.5rem 1rem;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: 500;
+          
+          &:hover {
+            background-color: darken(#1E88E5, 10%);
+          }
+        }
+      }
+      
+      .loading-spinner {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 200px;
+        color: #666;
+      }
+      
+      .error-message {
+        background-color: #FFEBEE;
+        color: #E53935;
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+      }
+      
+      .empty-state {
+        text-align: center;
+        padding: 3rem;
+        background-color: #F5F5F5;
+        border-radius: 8px;
+        
+        h2 {
+          margin-top: 0;
+          color: #333;
+        }
+        
+        p {
+          color: #666;
+          margin-bottom: 1.5rem;
+        }
+      }
+      
+      .thermostats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .thermostats-page {
+    .main-content {
+      flex-direction: column;
+      
+      .content-wrapper {
+        padding: 1rem;
+        
+        .thermostats-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    }
+  }
+}
