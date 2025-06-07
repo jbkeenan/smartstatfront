@@ -1,9 +1,8 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://smartstatback.onrender.com/api';
-
+// Create axios instance with base URL
 export const api = axios.create({
-  baseURL: API_URL,
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -12,10 +11,14 @@ export const api = axios.create({
 // Add a request interceptor for token refresh
 api.interceptors.request.use(
   async (config) => {
+    // Check if token is expired and refresh if needed
     const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refreshToken');
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
     return config;
   },
   (error) => {
@@ -23,7 +26,7 @@ api.interceptors.request.use(
   }
 );
 
-// Add a response interceptor for token refresh
+// Add a response interceptor for handling token expiration
 api.interceptors.response.use(
   (response) => {
     return response;
@@ -42,9 +45,10 @@ api.interceptors.response.use(
         }
         
         // Attempt to refresh the token
-        const response = await axios.post(`${API_URL}/token/refresh/`, {
-          refresh: refreshToken,
-        });
+        const response = await axios.post(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:8000/api'}/token/refresh/`,
+          { refresh: refreshToken }
+        );
         
         const { access } = response.data;
         
@@ -53,14 +57,17 @@ api.interceptors.response.use(
         
         // Update authorization header
         api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
-        originalRequest.headers['Authorization'] = `Bearer ${access}`;
+        originalRequest.headers.Authorization = `Bearer ${access}`;
         
         // Retry the original request
         return api(originalRequest);
       } catch (refreshError) {
-        // If refresh fails, logout
+        // If refresh fails, clear tokens and redirect to login
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
+        delete api.defaults.headers.common['Authorization'];
+        
+        // Redirect to login page
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }
@@ -70,222 +77,127 @@ api.interceptors.response.use(
   }
 );
 
-// Thermostat API service
-export const thermostatService = {
-  // Get all thermostats for a property
-  getThermostats: (propertyId: string) => {
-    return api.get(`/properties/${propertyId}/thermostats/`);
-  },
-  
-  // Get a specific thermostat
-  getThermostat: (id: string) => {
-    return api.get(`/thermostats/${id}/`);
-  },
-  
-  // Add a thermostat to a property
-  addThermostat: (propertyId: string, thermostatData: any) => {
-    return api.post(`/properties/${propertyId}/thermostats/`, thermostatData);
-  },
-  
-  // Update a thermostat
-  updateThermostat: (id: string, thermostatData: any) => {
-    return api.put(`/thermostats/${id}/`, thermostatData);
-  },
-  
-  // Remove a thermostat
-  removeThermostat: (id: string) => {
-    return api.delete(`/thermostats/${id}/`);
-  },
-  
-  // Send command to thermostat
-  sendCommand: (id: string, command: any) => {
-    return api.post(`/thermostats/${id}/command/`, command);
-  },
+// Authentication API calls
+export const login = async (email: string, password: string) => {
+  const response = await api.post('/token/', { email, password });
+  return response.data;
 };
 
-// Property API service
-export const propertyService = {
-  // Get all properties
-  getProperties: () => {
-    return api.get('/properties/');
-  },
-  
-  // Get a specific property
-  getProperty: (id: string) => {
-    return api.get(`/properties/${id}/`);
-  },
-  
-  // Create a new property
-  createProperty: (propertyData: any) => {
-    return api.post('/properties/', propertyData);
-  },
-  
-  // Update a property
-  updateProperty: (id: string, propertyData: any) => {
-    return api.put(`/properties/${id}/`, propertyData);
-  },
-  
-  // Delete a property
-  deleteProperty: (id: string) => {
-    return api.delete(`/properties/${id}/`);
-  },
-  
-  // Get property calendar
-  getCalendar: (propertyId: string) => {
-    return api.get(`/properties/${propertyId}/calendar/`);
-  },
-  
-  // Add calendar event
-  addCalendarEvent: (propertyId: string, eventData: any) => {
-    return api.post(`/properties/${propertyId}/calendar/events/`, eventData);
-  },
-  
-  // Update calendar event
-  updateCalendarEvent: (propertyId: string, eventId: string, eventData: any) => {
-    return api.put(`/properties/${propertyId}/calendar/events/${eventId}/`, eventData);
-  },
-  
-  // Delete calendar event
-  deleteCalendarEvent: (propertyId: string, eventId: string) => {
-    return api.delete(`/properties/${propertyId}/calendar/events/${eventId}/`);
-  },
-  
-  // Sync with external calendar
-  syncCalendar: (propertyId: string, syncData: any) => {
-    return api.post(`/properties/${propertyId}/calendar/sync/`, syncData);
-  },
-  
-  // Get property statistics
-  getStatistics: (propertyId: string, period?: string) => {
-    return api.get(`/properties/${propertyId}/statistics/`, { params: { period } });
-  },
+export const register = async (userData: any) => {
+  const response = await api.post('/users/register/', userData);
+  return response.data;
 };
 
-// Authentication service
-export const authService = {
-  // Login
-  login: (email: string, password: string) => {
-    return api.post('/token/', { email, password });
-  },
-  
-  // Register
-  register: (userData: any) => {
-    return api.post('/users/register/', userData);
-  },
-  
-  // Get user profile
-  getProfile: () => {
-    return api.get('/users/profile/');
-  },
-  
-  // Update user profile
-  updateProfile: (profileData: any) => {
-    return api.put('/users/profile/', profileData);
-  },
-  
-  // Refresh token
-  refreshToken: (refreshToken: string) => {
-    return api.post('/token/refresh/', { refresh: refreshToken });
-  },
+export const getUserProfile = async () => {
+  const response = await api.get('/users/profile/');
+  return response.data;
 };
 
-// Thermostat API adapters
-export const thermostatAdapters = {
-  // Create adapter for specific thermostat brand
-  createAdapter: (brand: string, config: any) => {
-    switch (brand.toLowerCase()) {
-      case 'nest':
-        return new NestAdapter(config);
-      case 'cielo':
-        return new CieloAdapter(config);
-      case 'pioneer':
-        return new PioneerAdapter(config);
-      default:
-        return new GenericAdapter(config);
-    }
-  }
+// Thermostat API calls
+export const getThermostats = async () => {
+  const response = await api.get('/thermostats/');
+  return response.data;
 };
 
-// Base adapter class
-class ThermostatAdapter {
-  config: any;
-  
-  constructor(config: any) {
-    this.config = config;
-  }
-  
-  async getStatus() {
-    throw new Error('Method not implemented');
-  }
-  
-  async setTemperature(temp: number) {
-    throw new Error('Method not implemented');
-  }
-  
-  async setMode(mode: string) {
-    throw new Error('Method not implemented');
-  }
-}
+export const getThermostatsByUser = async () => {
+  const response = await api.get('/thermostats/user/');
+  return response.data;
+};
 
-// Nest adapter implementation
-class NestAdapter extends ThermostatAdapter {
-  async getStatus() {
-    // Implementation for Google Nest API
-    return api.get(`/thermostat-api/nest/${this.config.deviceId}/status`);
-  }
-  
-  async setTemperature(temp: number) {
-    return api.post(`/thermostat-api/nest/${this.config.deviceId}/temperature`, { temperature: temp });
-  }
-  
-  async setMode(mode: string) {
-    return api.post(`/thermostat-api/nest/${this.config.deviceId}/mode`, { mode });
-  }
-}
+export const getThermostatsByProperty = async (propertyId: string) => {
+  const response = await api.get(`/thermostats/property/${propertyId}/`);
+  return response.data;
+};
 
-// Cielo adapter implementation
-class CieloAdapter extends ThermostatAdapter {
-  async getStatus() {
-    // Implementation for Cielo API
-    return api.get(`/thermostat-api/cielo/${this.config.deviceId}/status`);
-  }
-  
-  async setTemperature(temp: number) {
-    return api.post(`/thermostat-api/cielo/${this.config.deviceId}/temperature`, { temperature: temp });
-  }
-  
-  async setMode(mode: string) {
-    return api.post(`/thermostat-api/cielo/${this.config.deviceId}/mode`, { mode });
-  }
-}
+export const getThermostat = async (id: string) => {
+  const response = await api.get(`/thermostats/${id}/`);
+  return response.data;
+};
 
-// Pioneer adapter implementation
-class PioneerAdapter extends ThermostatAdapter {
-  async getStatus() {
-    // Implementation for Pioneer API
-    return api.get(`/thermostat-api/pioneer/${this.config.deviceId}/status`);
-  }
-  
-  async setTemperature(temp: number) {
-    return api.post(`/thermostat-api/pioneer/${this.config.deviceId}/temperature`, { temperature: temp });
-  }
-  
-  async setMode(mode: string) {
-    return api.post(`/thermostat-api/pioneer/${this.config.deviceId}/mode`, { mode });
-  }
-}
+export const addThermostat = async (thermostatData: any) => {
+  const response = await api.post('/thermostats/', thermostatData);
+  return response.data;
+};
 
-// Generic adapter implementation for other brands
-class GenericAdapter extends ThermostatAdapter {
-  async getStatus() {
-    return api.get(`/thermostat-api/generic/${this.config.deviceId}/status`);
-  }
-  
-  async setTemperature(temp: number) {
-    return api.post(`/thermostat-api/generic/${this.config.deviceId}/temperature`, { temperature: temp });
-  }
-  
-  async setMode(mode: string) {
-    return api.post(`/thermostat-api/generic/${this.config.deviceId}/mode`, { mode });
-  }
-}
+export const updateThermostat = async (id: string, thermostatData: any) => {
+  const response = await api.put(`/thermostats/${id}/`, thermostatData);
+  return response.data;
+};
+
+export const deleteThermostat = async (id: string) => {
+  const response = await api.delete(`/thermostats/${id}/`);
+  return response.data;
+};
+
+export const setThermostatTemperature = async (id: string, temperature: number) => {
+  const response = await api.post(`/thermostats/${id}/set-temperature/`, { temperature });
+  return response.data;
+};
+
+export const setThermostatMode = async (id: string, mode: string) => {
+  const response = await api.post(`/thermostats/${id}/set-mode/`, { mode });
+  return response.data;
+};
+
+// Property API calls
+export const getProperties = async () => {
+  const response = await api.get('/properties/');
+  return response.data;
+};
+
+export const getProperty = async (id: string) => {
+  const response = await api.get(`/properties/${id}/`);
+  return response.data;
+};
+
+export const addProperty = async (propertyData: any) => {
+  const response = await api.post('/properties/', propertyData);
+  return response.data;
+};
+
+export const updateProperty = async (id: string, propertyData: any) => {
+  const response = await api.put(`/properties/${id}/`, propertyData);
+  return response.data;
+};
+
+export const deleteProperty = async (id: string) => {
+  const response = await api.delete(`/properties/${id}/`);
+  return response.data;
+};
+
+// Calendar API calls
+export const getCalendarEvents = async (propertyId: string) => {
+  const response = await api.get(`/calendars/property/${propertyId}/`);
+  return response.data;
+};
+
+export const addCalendarEvent = async (eventData: any) => {
+  const response = await api.post('/calendars/events/', eventData);
+  return response.data;
+};
+
+export const updateCalendarEvent = async (id: string, eventData: any) => {
+  const response = await api.put(`/calendars/events/${id}/`, eventData);
+  return response.data;
+};
+
+export const deleteCalendarEvent = async (id: string) => {
+  const response = await api.delete(`/calendars/events/${id}/`);
+  return response.data;
+};
+
+// Statistics API calls
+export const getStatistics = async (timeRange: string = 'month') => {
+  const response = await api.get(`/statistics/?time_range=${timeRange}`);
+  return response.data;
+};
+
+export const getPropertyStatistics = async (propertyId: string, timeRange: string = 'month') => {
+  const response = await api.get(`/statistics/property/${propertyId}/?time_range=${timeRange}`);
+  return response.data;
+};
+
+export const getThermostatStatistics = async (thermostatId: string, timeRange: string = 'month') => {
+  const response = await api.get(`/statistics/thermostat/${thermostatId}/?time_range=${timeRange}`);
+  return response.data;
+};
