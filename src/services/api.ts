@@ -201,3 +201,48 @@ export const getThermostatStatistics = async (thermostatId: string, timeRange: s
   const response = await api.get(`/statistics/thermostat/${thermostatId}/?time_range=${timeRange}`);
   return response.data;
 };
+
+// Property service object for easier imports
+export const propertyService = {
+  getProperties,
+  getProperty,
+  addProperty,
+  updateProperty,
+  deleteProperty,
+};
+
+// Thermostat service object for easier imports
+export const thermostatService = {
+  getThermostats,
+  getThermostatsByUser,
+  getThermostatsByProperty,
+  getThermostat,
+  addThermostat,
+  updateThermostat,
+  deleteThermostat,
+  setThermostatTemperature,
+  setThermostatMode,
+};
+
+// Calendar service object for easier imports
+export const calendarService = {
+  getCalendarEvents,
+  addCalendarEvent,
+  updateCalendarEvent,
+  deleteCalendarEvent,
+};
+
+// Statistics service object for easier imports
+export const statisticsService = {
+  getStatistics,
+  getPropertyStatistics,
+  getThermostatStatistics,
+};
+
+// Auth service object for easier imports
+export const authService = {
+  login,
+  register,
+  getUserProfile,
+};
+

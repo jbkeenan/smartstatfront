@@ -1,0 +1,15 @@
+/* PropertyDetailPage.css - Placeholder CSS file */
+.property-detail-page {
+  padding: 20px;
+}
+
+.property-header {
+  margin-bottom: 20px;
+}
+
+.property-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+

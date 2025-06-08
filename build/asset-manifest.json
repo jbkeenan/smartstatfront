@@ -1,0 +1,22 @@
+{
+  "files": {
+    "main.css": "/static/css/main.7e6b689f.css",
+    "main.js": "/static/js/main.86669d1b.js",
+    "index.html": "/index.html",
+    "static/media/calendar.svg": "/static/media/calendar.64a31005423ca6a0d057.svg",
+    "static/media/twitter.svg": "/static/media/twitter.db817ee3573f3269ae97.svg",
+    "static/media/multi-brand.svg": "/static/media/multi-brand.e306c834e6475f984c4a.svg",
+    "static/media/linkedin.svg": "/static/media/linkedin.cd58cf0aa9d5d7c1f7d0.svg",
+    "static/media/instagram.svg": "/static/media/instagram.cd22c5de41e703f4259f.svg",
+    "static/media/money-saving.svg": "/static/media/money-saving.86135822f8a33d245a24.svg",
+    "static/media/pattern.svg": "/static/media/pattern.6347be54fcd8d3004a91.svg",
+    "static/media/eco.svg": "/static/media/eco.6cb99a1a32bc6d385f00.svg",
+    "static/media/facebook.svg": "/static/media/facebook.2e5559b4adad8bf069d0.svg",
+    "main.7e6b689f.css.map": "/static/css/main.7e6b689f.css.map",
+    "main.86669d1b.js.map": "/static/js/main.86669d1b.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.7e6b689f.css",
+    "static/js/main.86669d1b.js"
+  ]
+}

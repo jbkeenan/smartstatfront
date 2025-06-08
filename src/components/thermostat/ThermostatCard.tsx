@@ -1,8 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import ThermostatCard from '../../components/thermostat/ThermostatCard';
 import { useAuth } from '../../contexts/AuthContext';
-import './ThermostatCard.scss';
+import './ThermostatCard.css';
 
 interface ThermostatCardProps {
   thermostat: {

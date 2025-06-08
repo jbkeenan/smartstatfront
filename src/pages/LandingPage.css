@@ -89,7 +89,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: url('./assets/pattern.svg');
+  background-image: url('../assets/pattern.svg');
   background-size: cover;
   opacity: 0.1;
 }
@@ -431,7 +431,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: url('./assets/pattern.svg');
+  background-image: url('../assets/pattern.svg');
   background-size: cover;
   opacity: 0.1;
 }
@@ -655,33 +655,33 @@
 }
 
 .icon-money-saving {
-  background-image: url('/assets/icons/money-saving.svg');
+  background-image: url('../assets/icons/money-saving.svg');
 }
 
 .icon-calendar {
-  background-image: url('/assets/icons/calendar.svg');
+  background-image: url('../assets/icons/calendar.svg');
 }
 
 .icon-multi-brand {
-  background-image: url('/assets/icons/multi-brand.svg');
+  background-image: url('../assets/icons/multi-brand.svg');
 }
 
 .icon-eco {
-  background-image: url('/assets/icons/eco.svg');
+  background-image: url('../assets/icons/eco.svg');
 }
 
 .icon-facebook {
-  background-image: url('/assets/icons/facebook.svg');
+  background-image: url('../assets/icons/facebook.svg');
 }
 
 .icon-twitter {
-  background-image: url('/assets/icons/twitter.svg');
+  background-image: url('../assets/icons/twitter.svg');
 }
 
 .icon-linkedin {
-  background-image: url('/assets/icons/linkedin.svg');
+  background-image: url('../assets/icons/linkedin.svg');
 }
 
 .icon-instagram {
-  background-image: url('/assets/icons/instagram.svg');
+  background-image: url('../assets/icons/instagram.svg');
 }
